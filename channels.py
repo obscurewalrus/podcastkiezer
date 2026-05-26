@@ -1,0 +1,126 @@
+from __future__ import annotations
+
+import json
+import os
+import smtplib
+import urllib.request
+from datetime import date
+from email.message import EmailMessage
+
+from feeds import Episode
+
+LETTERS = "ABCDEFGH"
+WHATSAPP_OPTION_MAX = 100  # WhatsApp poll option character limit
+WHATSAPP_QUESTION_MAX = 255
+
+DUTCH_MONTHS = {
+    1: "januari", 2: "februari", 3: "maart", 4: "april",
+    5: "mei", 6: "juni", 7: "juli", 8: "augustus",
+    9: "september", 10: "oktober", 11: "november", 12: "december",
+}
+
+
+def format_date_nl(d: date) -> str:
+    return f"{d.day} {DUTCH_MONTHS[d.month]} {d.year}"
+
+
+def _truncate(s: str, n: int) -> str:
+    s = s.strip()
+    if len(s) <= n:
+        return s
+    return s[: n - 1].rstrip() + "…"
+
+
+def render_whatsapp(today: date, shuffled: list[Episode], missing: list[str]) -> str:
+    lines = [
+        f"📰 Podcastkiezer — {format_date_nl(today)}",
+        "",
+        "Plak dit als WhatsApp-poll.",
+        "",
+        "Vraag:",
+        _truncate("Welke kop spreekt jou het meest aan?", WHATSAPP_QUESTION_MAX),
+        "",
+        "Opties:",
+    ]
+    for i, ep in enumerate(shuffled):
+        lines.append(f"{LETTERS[i]}) {_truncate(ep.title, WHATSAPP_OPTION_MAX - 3)}")
+    if missing:
+        lines += ["", f"(Geen aflevering vandaag: {', '.join(missing)})"]
+    return "\n".join(lines)
+
+
+def render_solution(shuffled: list[Episode], missing: list[str]) -> str:
+    lines = []
+    for i, ep in enumerate(shuffled):
+        link = f" — {ep.link}" if ep.link else ""
+        lines.append(f"{LETTERS[i]}) {ep.source}: {ep.title}{link}")
+    if missing:
+        lines += ["", f"Geen aflevering vandaag: {', '.join(missing)}."]
+    return "\n".join(lines)
+
+
+def render_markdown_log(today: date, poll_text: str, solution_text: str) -> str:
+    return (
+        f"# Podcastkiezer — {format_date_nl(today)}\n\n"
+        f"## WhatsApp-poll\n\n"
+        f"```\n{poll_text}\n```\n\n"
+        f"## Oplossing\n\n"
+        f"```\n{solution_text}\n```\n"
+    )
+
+
+def send_slack(webhook_url: str, today: date, poll_text: str, solution_text: str) -> None:
+    payload = {
+        "text": (
+            f"*Podcastkiezer — {format_date_nl(today)}*\n"
+            f"```\n{poll_text}\n```\n"
+            f":warning: *Oplossing — niet lezen tot iedereen heeft gestemd:*\n"
+            f"```\n{solution_text}\n```"
+        )
+    }
+    req = urllib.request.Request(
+        webhook_url,
+        data=json.dumps(payload).encode("utf-8"),
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    with urllib.request.urlopen(req, timeout=15) as resp:
+        body = resp.read().decode("utf-8", errors="replace")
+        if resp.status >= 300:
+            raise RuntimeError(f"Slack webhook returned {resp.status}: {body}")
+
+
+def send_mail(mail_config: dict, today: date, poll_text: str, solution_text: str) -> None:
+    host = os.environ["SMTP_HOST"]
+    port = int(os.environ.get("SMTP_PORT", "587"))
+    user = os.environ.get("SMTP_USER")
+    password = os.environ.get("SMTP_PASSWORD")
+    use_tls = os.environ.get("SMTP_STARTTLS", "true").lower() != "false"
+
+    recipients = mail_config.get("to") or []
+    sender = mail_config.get("from") or user
+    if not recipients or not sender:
+        raise RuntimeError("Mail config requires 'from' and at least one 'to'.")
+
+    prefix = mail_config.get("subject_prefix", "[Podcastkiezer]")
+
+    msg = EmailMessage()
+    msg["Subject"] = f"{prefix} {format_date_nl(today)}"
+    msg["From"] = sender
+    msg["To"] = ", ".join(recipients)
+    msg.set_content(
+        "WhatsApp-poll:\n\n"
+        f"{poll_text}\n\n"
+        "—\n\n"
+        "Oplossing (niet meteen lezen!):\n\n"
+        f"{solution_text}\n"
+    )
+
+    with smtplib.SMTP(host, port, timeout=20) as smtp:
+        smtp.ehlo()
+        if use_tls:
+            smtp.starttls()
+            smtp.ehlo()
+        if user and password:
+            smtp.login(user, password)
+        smtp.send_message(msg)
