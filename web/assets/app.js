@@ -53,7 +53,7 @@ function renderPoll(root, poll) {
       el(
         "p",
         { class: "notice" },
-        "Welke kop spreekt jou aan? Klik om te stemmen. De bronnen blijven verborgen tot je hebt gestemd."
+        "Welke podcast zou jij luisteren? Klik om te stemmen. De bronnen blijven verborgen tot je hebt gestemd."
       )
     );
   } else {
@@ -80,6 +80,18 @@ function renderPoll(root, poll) {
       el("span", { class: "letter" }, opt.letter),
       el("span", { class: "title" }, opt.title),
     ];
+
+    if (poll.reveal && opt.artwork_url) {
+      children.push(
+        el("img", {
+          class: "artwork",
+          src: opt.artwork_url,
+          alt: opt.source ? `Cover ${opt.source}` : "",
+          loading: "lazy",
+          referrerpolicy: "no-referrer",
+        })
+      );
+    }
 
     if (poll.reveal && opt.source) {
       children.push(el("span", { class: "source" }, opt.source));
@@ -109,10 +121,15 @@ function renderPoll(root, poll) {
       );
     }
 
+    const classes = ["option"];
+    if (isYours) classes.push("your-vote");
+    if (poll.reveal) classes.push("revealed");
+    if (poll.reveal && opt.artwork_url) classes.push("has-artwork");
+
     const button = el(
       "button",
       {
-        class: `option${isYours ? " your-vote" : ""}`,
+        class: classes.join(" "),
         type: "button",
         disabled: poll.can_vote ? null : "true",
         onclick: poll.can_vote

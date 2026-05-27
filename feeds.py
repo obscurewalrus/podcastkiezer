@@ -17,6 +17,7 @@ class Episode:
     published: datetime
     link: str
     duration_sec: int | None
+    artwork_url: str | None
 
 
 def _parse_duration(raw: str | None) -> int | None:
@@ -39,6 +40,55 @@ def _parse_duration(raw: str | None) -> int | None:
         return int(raw)
     except ValueError:
         return None
+
+
+def _href_from(obj) -> str | None:
+    """Trek een href uit een dict, een feedparser-attribuut-object, of None."""
+    if obj is None:
+        return None
+    if isinstance(obj, dict):
+        return obj.get("href") or obj.get("url") or None
+    href = getattr(obj, "href", None) or getattr(obj, "url", None)
+    return href or None
+
+
+def _listen_link(entry) -> str:
+    """Geef een bruikbare luister-URL terug.
+
+    Sommige feeds (o.a. Art19/NRC Vandaag) zetten geen `<link>` op het
+    item; voor die gevallen vallen we terug op de eerste alternate-link
+    en daarna op de audio-enclosure (MP3) zodat er altijd iets aan te
+    klikken valt.
+    """
+    direct = getattr(entry, "link", "") or ""
+    if direct:
+        return direct
+    for link in getattr(entry, "links", None) or []:
+        rel = (link.get("rel") if isinstance(link, dict) else getattr(link, "rel", None)) or "alternate"
+        href = _href_from(link)
+        if href and rel == "alternate":
+            return href
+    for enc in getattr(entry, "enclosures", None) or []:
+        href = _href_from(enc)
+        if href:
+            return href
+    return ""
+
+
+def _artwork_url(parsed_feed, entry) -> str | None:
+    """Probeer aflevering-specifieke artwork; anders channel-niveau."""
+    candidates = [
+        entry.get("itunes_image"),
+        entry.get("image"),
+        (entry.get("media_thumbnail") or [None])[0] if isinstance(entry.get("media_thumbnail"), list) else None,
+        parsed_feed.feed.get("itunes_image"),
+        parsed_feed.feed.get("image"),
+    ]
+    for c in candidates:
+        href = _href_from(c)
+        if href:
+            return href
+    return None
 
 
 def fetch_main_episode(source: str, url: str, today: date) -> Episode | None:
@@ -71,6 +121,7 @@ def fetch_main_episode(source: str, url: str, today: date) -> Episode | None:
         source=source,
         title=entry.title.strip(),
         published=pub_local,
-        link=getattr(entry, "link", ""),
+        link=_listen_link(entry),
         duration_sec=duration or None,
+        artwork_url=_artwork_url(parsed, entry),
     )

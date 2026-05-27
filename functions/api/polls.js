@@ -20,7 +20,7 @@ export async function onRequestGet({ env }) {
         LIMIT ?2
      )
      SELECT r.date, r.question,
-            po.letter, po.source, po.title, po.link, po.duration_sec,
+            po.letter, po.source, po.title, po.link, po.duration_sec, po.artwork_url,
             COALESCE(vc.cnt, 0) AS count
        FROM recent r
        JOIN poll_options po ON po.poll_date = r.date
@@ -55,6 +55,7 @@ export async function onRequestGet({ env }) {
       title: row.title,
       link: row.link,
       duration_sec: row.duration_sec,
+      artwork_url: row.artwork_url,
       count,
     });
   }

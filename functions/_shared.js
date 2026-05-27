@@ -99,7 +99,7 @@ export async function fetchPoll(env, date) {
   if (!pollRow) return null;
 
   const optionsResult = await env.DB.prepare(
-    `SELECT po.letter, po.source, po.title, po.link, po.duration_sec,
+    `SELECT po.letter, po.source, po.title, po.link, po.duration_sec, po.artwork_url,
             COALESCE(vc.cnt, 0) AS count
        FROM poll_options po
   LEFT JOIN (
@@ -125,6 +125,7 @@ export async function fetchPoll(env, date) {
       title: r.title,
       link: r.link,
       duration_sec: r.duration_sec,
+      artwork_url: r.artwork_url,
       count: Number(r.count) || 0,
     })),
   };
@@ -161,6 +162,7 @@ export function shapePoll(poll, { isToday, hasVoted, yourVote }) {
       duration_sec: hideAnswers ? null : o.duration_sec,
       source: hideAnswers ? null : o.source,
       link: hideAnswers ? null : o.link,
+      artwork_url: hideAnswers ? null : o.artwork_url,
       count: hideAnswers ? null : o.count,
     })),
   };

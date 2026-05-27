@@ -12,4 +12,4 @@ mail:
   from: "podcastkiezer@example.com"
   to:
     - "redactie@example.com"
-  subject_prefix: "[Podcastkiezer]"
+  subject_prefix: "[Podcastdilemma]"

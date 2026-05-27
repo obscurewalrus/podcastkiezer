@@ -12,7 +12,7 @@ from feeds import Episode
 LETTERS = "ABCDEFGH"
 WHATSAPP_OPTION_MAX = 100  # WhatsApp poll option character limit
 WHATSAPP_QUESTION_MAX = 255
-POLL_QUESTION = "Welke kop spreekt jou het meest aan?"
+POLL_QUESTION = "Welke podcast zou jij vandaag luisteren?"
 
 DUTCH_MONTHS = {
     1: "januari", 2: "februari", 3: "maart", 4: "april",
@@ -34,7 +34,7 @@ def _truncate(s: str, n: int) -> str:
 
 def render_whatsapp(today: date, shuffled: list[Episode], missing: list[str]) -> str:
     lines = [
-        f"📰 Podcastkiezer — {format_date_nl(today)}",
+        f"🎧 Podcastdilemma — {format_date_nl(today)}",
         "",
         "Plak dit als WhatsApp-poll.",
         "",
@@ -86,13 +86,14 @@ def render_d1_sql(today: date, shuffled: list[Episode], missing: list[str]) -> s
     for i, ep in enumerate(shuffled):
         stmts.append(
             "INSERT OR IGNORE INTO poll_options "
-            "(poll_date, letter, source, title, link, duration_sec) VALUES ("
+            "(poll_date, letter, source, title, link, duration_sec, artwork_url) VALUES ("
             f"{_sql_literal(today.isoformat())}, "
             f"{_sql_literal(LETTERS[i])}, "
             f"{_sql_literal(ep.source)}, "
             f"{_sql_literal(ep.title)}, "
             f"{_sql_literal(ep.link or None)}, "
-            f"{_sql_literal(ep.duration_sec)}"
+            f"{_sql_literal(ep.duration_sec)}, "
+            f"{_sql_literal(ep.artwork_url)}"
             ");"
         )
     return "\n".join(stmts) + "\n"
@@ -100,7 +101,7 @@ def render_d1_sql(today: date, shuffled: list[Episode], missing: list[str]) -> s
 
 def render_markdown_log(today: date, poll_text: str, solution_text: str) -> str:
     return (
-        f"# Podcastkiezer — {format_date_nl(today)}\n\n"
+        f"# Podcastdilemma — {format_date_nl(today)}\n\n"
         f"## WhatsApp-poll\n\n"
         f"```\n{poll_text}\n```\n\n"
         f"## Oplossing\n\n"
@@ -111,7 +112,7 @@ def render_markdown_log(today: date, poll_text: str, solution_text: str) -> str:
 def send_slack(webhook_url: str, today: date, poll_text: str, solution_text: str) -> None:
     payload = {
         "text": (
-            f"*Podcastkiezer — {format_date_nl(today)}*\n"
+            f"*Podcastdilemma — {format_date_nl(today)}*\n"
             f"```\n{poll_text}\n```\n"
             f":warning: *Oplossing — niet lezen tot iedereen heeft gestemd:*\n"
             f"```\n{solution_text}\n```"
@@ -141,7 +142,7 @@ def send_mail(mail_config: dict, today: date, poll_text: str, solution_text: str
     if not recipients or not sender:
         raise RuntimeError("Mail config requires 'from' and at least one 'to'.")
 
-    prefix = mail_config.get("subject_prefix", "[Podcastkiezer]")
+    prefix = mail_config.get("subject_prefix", "[Podcastdilemma]")
 
     msg = EmailMessage()
     msg["Subject"] = f"{prefix} {format_date_nl(today)}"
