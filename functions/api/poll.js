@@ -1,14 +1,11 @@
 import {
+  ensureVoterId,
   fetchPoll,
   getVoterVote,
   isValidDate,
   json,
-  newVoterId,
-  parseCookies,
-  setVoterCookie,
   shapePoll,
   todayInAmsterdam,
-  VOTER_COOKIE,
 } from "../_shared.js";
 
 export async function onRequestGet({ request, env }) {
@@ -29,13 +26,7 @@ export async function onRequestGet({ request, env }) {
     );
   }
 
-  const cookies = parseCookies(request);
-  let voterId = cookies[VOTER_COOKIE];
-  const extraHeaders = new Headers();
-  if (!voterId) {
-    voterId = newVoterId();
-    setVoterCookie(extraHeaders, voterId);
-  }
+  const { voterId, extraHeaders } = ensureVoterId(request);
 
   const isToday = date === today;
   const yourVote = await getVoterVote(env, date, voterId);

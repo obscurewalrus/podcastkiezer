@@ -2,9 +2,7 @@ name = "podcastkiezer"
 pages_build_output_dir = "web"
 compatibility_date = "2025-05-01"
 
-# Vul `database_id` in nadat je `wrangler d1 create podcastkiezer-db` hebt gedraaid.
-[[d1_databases]]
-binding = "DB"
-database_name = "podcastkiezer-db"
-database_id = "REPLACE_WITH_REAL_ID"
-migrations_dir = "migrations"
+# D1-bindings voor Pages-projecten zet je in de Cloudflare-dashboard
+# (Settings → Functions → D1 database bindings), niet in wrangler.toml.
+# Het schema laad je eenmalig met:
+#   wrangler d1 execute podcastkiezer-db --remote --file migrations/0001_init.sql

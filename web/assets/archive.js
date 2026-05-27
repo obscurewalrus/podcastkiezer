@@ -1,25 +1,4 @@
-const DUTCH_MONTHS = [
-  "januari", "februari", "maart", "april", "mei", "juni",
-  "juli", "augustus", "september", "oktober", "november", "december",
-];
-
-function formatDateNl(iso) {
-  const [y, m, d] = iso.split("-").map(Number);
-  return `${d} ${DUTCH_MONTHS[m - 1]} ${y}`;
-}
-
-function el(tag, attrs = {}, children = []) {
-  const node = document.createElement(tag);
-  for (const [k, v] of Object.entries(attrs)) {
-    if (k === "class") node.className = v;
-    else if (v !== null && v !== undefined) node.setAttribute(k, v);
-  }
-  for (const c of [].concat(children)) {
-    if (c == null) continue;
-    node.append(typeof c === "string" ? document.createTextNode(c) : c);
-  }
-  return node;
-}
+import { el, formatDateNl } from "./util.js";
 
 async function main() {
   const root = document.getElementById("archive");
@@ -43,11 +22,16 @@ async function main() {
 
     const list = el("ul", { class: "archive-list" });
     for (const p of polls) {
-      const summary = p.winner
-        ? `${p.winner.source} won met ${p.winner.count} ${
-            p.winner.count === 1 ? "stem" : "stemmen"
-          }`
-        : "Geen stemmen";
+      let summary;
+      if (!p.winner) {
+        summary = "Geen stemmen";
+      } else if (p.winner.tied) {
+        summary = `Gelijkspel op ${p.winner.count} ${p.winner.count === 1 ? "stem" : "stemmen"}`;
+      } else {
+        summary = `${p.winner.source} won met ${p.winner.count} ${
+          p.winner.count === 1 ? "stem" : "stemmen"
+        }`;
+      }
       list.append(
         el("li", {}, [
           el("a", { href: `/?date=${encodeURIComponent(p.date)}` }, [

@@ -1,11 +1,8 @@
 import {
   fetchPoll,
-  getVoterVote,
   isValidDate,
   json,
-  newVoterId,
   parseCookies,
-  setVoterCookie,
   shapePoll,
   todayInAmsterdam,
   VOTER_COOKIE,
@@ -36,20 +33,24 @@ export async function onRequestPost({ request, env }) {
     return json({ error: "Ongeldige optie." }, { status: 400 });
   }
 
+  // Vereis een bestaande cookie zodat het tellen beperkt is tot bezoekers
+  // die eerst de pagina opvragen (en daarmee de cookie krijgen). Stopt
+  // de meeste ballot-stuffing via curl/scripts zonder cookie-jar.
+  const cookies = parseCookies(request);
+  const voterId = cookies[VOTER_COOKIE];
+  if (!voterId) {
+    return json(
+      { error: "Geen sessie gevonden — herlaad de pagina en stem opnieuw." },
+      { status: 400 }
+    );
+  }
+
   const poll = await fetchPoll(env, date);
   if (!poll) {
     return json({ error: "Geen poll voor vandaag." }, { status: 404 });
   }
   if (!poll.options.some((o) => o.letter === letter)) {
     return json({ error: "Onbekende optie voor deze poll." }, { status: 400 });
-  }
-
-  const cookies = parseCookies(request);
-  let voterId = cookies[VOTER_COOKIE];
-  const extraHeaders = new Headers();
-  if (!voterId) {
-    voterId = newVoterId();
-    setVoterCookie(extraHeaders, voterId);
   }
 
   const now = new Date().toISOString();
@@ -62,14 +63,15 @@ export async function onRequestPost({ request, env }) {
     .bind(date, voterId, letter, now)
     .run();
 
-  // Verse poll ophalen mét bijgewerkte tellingen.
+  // Werk de tellingen bij door één SELECT te draaien; de letter weten we al
+  // (we hebben 'm net geschreven), dus we slaan een tweede getVoterVote-query
+  // over en vermijden read-after-write-replica-issues.
   const refreshed = await fetchPoll(env, date);
-  const yourVote = await getVoterVote(env, date, voterId);
   const shaped = shapePoll(refreshed, {
     isToday: true,
     hasVoted: true,
-    yourVote,
+    yourVote: letter,
   });
 
-  return json(shaped, { headers: extraHeaders });
+  return json(shaped);
 }

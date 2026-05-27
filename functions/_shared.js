@@ -23,7 +23,15 @@ export function parseCookies(request) {
   const out = {};
   for (const part of header.split(";")) {
     const [k, ...v] = part.trim().split("=");
-    if (k) out[k] = decodeURIComponent(v.join("="));
+    if (!k) continue;
+    const raw = v.join("=");
+    try {
+      out[k] = decodeURIComponent(raw);
+    } catch {
+      // Een rommelige cookie van een andere app op hetzelfde domein mag
+      // de hele request niet laten crashen — pak de rauwe waarde.
+      out[k] = raw;
+    }
   }
   return out;
 }
@@ -32,13 +40,38 @@ export function newVoterId() {
   return crypto.randomUUID();
 }
 
-export function setVoterCookie(headers, voterId) {
-  // 2 jaar, Lax, Secure, HttpOnly. JS hoeft 'm niet te lezen.
+function isSecureRequest(request) {
+  const url = new URL(request.url);
+  if (url.protocol === "https:") return true;
+  // Cloudflare zet deze header op de oorspronkelijke client-protocol.
+  if (request.headers.get("X-Forwarded-Proto") === "https") return true;
+  return false;
+}
+
+export function setVoterCookie(headers, voterId, request) {
+  // 2 jaar, Lax, HttpOnly. Secure alleen onder https, anders weigert
+  // de browser onder `wrangler pages dev` (http://localhost) de cookie.
   const maxAge = 60 * 60 * 24 * 365 * 2;
+  const secure = isSecureRequest(request) ? "; Secure" : "";
   headers.append(
     "Set-Cookie",
-    `${VOTER_COOKIE}=${voterId}; Max-Age=${maxAge}; Path=/; SameSite=Lax; Secure; HttpOnly`
+    `${VOTER_COOKIE}=${voterId}; Max-Age=${maxAge}; Path=/; SameSite=Lax${secure}; HttpOnly`
   );
+}
+
+/**
+ * Lees voter_id uit cookies; mint er een als 'ie ontbreekt en zet 'm via
+ * `extraHeaders` op het response. Roep aan als je tolerant wil zijn voor
+ * eerste bezoekers (GET /api/poll).
+ */
+export function ensureVoterId(request) {
+  const cookies = parseCookies(request);
+  const existing = cookies[VOTER_COOKIE];
+  const extraHeaders = new Headers();
+  if (existing) return { voterId: existing, extraHeaders };
+  const voterId = newVoterId();
+  setVoterCookie(extraHeaders, voterId, request);
+  return { voterId, extraHeaders };
 }
 
 export function json(body, init = {}) {
@@ -46,6 +79,15 @@ export function json(body, init = {}) {
   headers.set("Content-Type", "application/json; charset=utf-8");
   headers.set("Cache-Control", "no-store");
   return new Response(JSON.stringify(body), { ...init, headers });
+}
+
+function safeJsonParse(raw, fallback) {
+  if (raw == null || raw === "") return fallback;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return fallback;
+  }
 }
 
 export async function fetchPoll(env, date) {
@@ -76,7 +118,7 @@ export async function fetchPoll(env, date) {
     date: pollRow.date,
     created_at: pollRow.created_at,
     question: pollRow.question,
-    missing: JSON.parse(pollRow.missing || "[]"),
+    missing: safeJsonParse(pollRow.missing, []),
     options: (optionsResult.results || []).map((r) => ({
       letter: r.letter,
       source: r.source,
@@ -116,7 +158,7 @@ export function shapePoll(poll, { isToday, hasVoted, yourVote }) {
     options: poll.options.map((o) => ({
       letter: o.letter,
       title: o.title,
-      // Bron + link + telling pas tonen na stem (of bij oude polls).
+      duration_sec: hideAnswers ? null : o.duration_sec,
       source: hideAnswers ? null : o.source,
       link: hideAnswers ? null : o.link,
       count: hideAnswers ? null : o.count,

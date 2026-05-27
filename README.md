@@ -55,12 +55,12 @@ wrangler login   # opent een browser
 wrangler d1 create podcastkiezer-db
 ```
 
-De output bevat een `database_id`. Plak die in `wrangler.toml` op de plek van `REPLACE_WITH_REAL_ID` en commit dat.
+De output bevat een `database_id`. Je hebt 'm zo nodig in stap 4 om de binding in de Cloudflare-dashboard te koppelen.
 
 ### 3. Schema laden
 
 ```bash
-wrangler d1 migrations apply podcastkiezer-db --remote
+wrangler d1 execute podcastkiezer-db --remote --file migrations/0001_init.sql
 ```
 
 ### 4. Pages-project koppelen aan deze repo

@@ -12,6 +12,7 @@ from feeds import Episode
 LETTERS = "ABCDEFGH"
 WHATSAPP_OPTION_MAX = 100  # WhatsApp poll option character limit
 WHATSAPP_QUESTION_MAX = 255
+POLL_QUESTION = "Welke kop spreekt jou het meest aan?"
 
 DUTCH_MONTHS = {
     1: "januari", 2: "februari", 3: "maart", 4: "april",
@@ -38,7 +39,7 @@ def render_whatsapp(today: date, shuffled: list[Episode], missing: list[str]) ->
         "Plak dit als WhatsApp-poll.",
         "",
         "Vraag:",
-        _truncate("Welke kop spreekt jou het meest aan?", WHATSAPP_QUESTION_MAX),
+        _truncate(POLL_QUESTION, WHATSAPP_QUESTION_MAX),
         "",
         "Opties:",
     ]
@@ -73,14 +74,13 @@ def _sql_literal(value) -> str:
 def render_d1_sql(today: date, shuffled: list[Episode], missing: list[str]) -> str:
     """SQL voor D1 om deze poll te registreren. Idempotent dankzij `OR IGNORE`."""
     created_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    question = "Welke kop spreekt jou het meest aan?"
     missing_json = json.dumps(missing, ensure_ascii=False)
 
     stmts = [
         "INSERT OR IGNORE INTO polls (date, created_at, question, missing) VALUES ("
         f"{_sql_literal(today.isoformat())}, "
         f"{_sql_literal(created_at)}, "
-        f"{_sql_literal(question)}, "
+        f"{_sql_literal(POLL_QUESTION)}, "
         f"{_sql_literal(missing_json)});"
     ]
     for i, ep in enumerate(shuffled):

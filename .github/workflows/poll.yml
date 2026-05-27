@@ -10,6 +10,11 @@ on:
 permissions:
   contents: write
 
+# Een floating @latest pin maakt de workflow afhankelijk van een toekomstige
+# wrangler-release zonder code-wijziging in deze repo. Bump bewust.
+env:
+  WRANGLER_VERSION: "4"
+
 jobs:
   generate:
     runs-on: ubuntu-latest
@@ -50,17 +55,24 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           D1_DATABASE_NAME: ${{ secrets.D1_DATABASE_NAME }}
+        # Draai vanuit een lege map zodat wrangler de wrangler.toml van de
+        # repo (die alleen Pages-config bevat) niet probeert te valideren.
         run: |
           today=$(TZ=Europe/Amsterdam date +%F)
-          sql="out/${today}.sql"
-          if [ ! -f "$sql" ]; then
+          sql_abs="$(pwd)/out/${today}.sql"
+          if [ ! -f "$sql_abs" ]; then
             echo "Geen SQL-bestand voor $today — sla D1-push over."
             exit 0
           fi
           db_name="${D1_DATABASE_NAME:-podcastkiezer-db}"
-          npx --yes wrangler@latest d1 execute "$db_name" --remote --file "$sql"
+          tmp_cwd="$(mktemp -d)"
+          cd "$tmp_cwd"
+          npx --yes "wrangler@${WRANGLER_VERSION}" d1 execute "$db_name" --remote --file "$sql_abs"
 
       - name: Commit log
+        # Loop ook bij gefaalde D1-push — anders raken de markdown- en
+        # SQL-logs van een succesvol gegenereerde poll alsnog verloren.
+        if: always()
         run: |
           git config user.name "podcastkiezer-bot"
           git config user.email "podcastkiezer-bot@users.noreply.github.com"

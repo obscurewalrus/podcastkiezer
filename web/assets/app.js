@@ -1,30 +1,4 @@
-const DUTCH_MONTHS = [
-  "januari", "februari", "maart", "april", "mei", "juni",
-  "juli", "augustus", "september", "oktober", "november", "december",
-];
-
-function formatDateNl(iso) {
-  const [y, m, d] = iso.split("-").map(Number);
-  return `${d} ${DUTCH_MONTHS[m - 1]} ${y}`;
-}
-
-function el(tag, attrs = {}, children = []) {
-  const node = document.createElement(tag);
-  for (const [k, v] of Object.entries(attrs)) {
-    if (k === "class") node.className = v;
-    else if (k === "html") node.innerHTML = v;
-    else if (k.startsWith("on") && typeof v === "function") {
-      node.addEventListener(k.slice(2).toLowerCase(), v);
-    } else if (v !== null && v !== undefined) {
-      node.setAttribute(k, v);
-    }
-  }
-  for (const c of [].concat(children)) {
-    if (c == null) continue;
-    node.append(typeof c === "string" ? document.createTextNode(c) : c);
-  }
-  return node;
-}
+import { el, formatDateNl } from "./util.js";
 
 async function fetchPoll(date) {
   const url = date ? `/api/poll?date=${encodeURIComponent(date)}` : "/api/poll";
@@ -92,6 +66,8 @@ function renderPoll(root, poll) {
     );
   }
 
+  // Voorkom dubbel-klik races: één pending vote tegelijk.
+  let voting = false;
   const options = el("div", { class: "options" });
   for (const opt of poll.options) {
     const isYours = poll.your_vote === opt.letter;
@@ -111,7 +87,7 @@ function renderPoll(root, poll) {
         children.push(
           el(
             "a",
-            { class: "listen", href: opt.link, target: "_blank", rel: "noopener" },
+            { class: "listen", href: opt.link, target: "_blank", rel: "noopener noreferrer" },
             "→ luister naar de aflevering"
           )
         );
@@ -141,12 +117,18 @@ function renderPoll(root, poll) {
         disabled: poll.can_vote ? null : "true",
         onclick: poll.can_vote
           ? async () => {
+              if (voting) return;
+              voting = true;
+              for (const b of options.querySelectorAll("button.option")) {
+                b.disabled = true;
+              }
               try {
-                button.disabled = true;
                 const updated = await castVote(poll.date, opt.letter);
                 renderPoll(root, updated);
               } catch (err) {
                 renderError(root, err.message);
+              } finally {
+                voting = false;
               }
             }
           : null,

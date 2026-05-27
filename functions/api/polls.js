@@ -1,5 +1,7 @@
 import { json, todayInAmsterdam } from "../_shared.js";
 
+const ARCHIVE_LIMIT = 60;
+
 /**
  * Lijst van afgelopen polls met opties en tellingen, voor het archief.
  * Vandaag wordt overgeslagen — die zit op de hoofdpagina.
@@ -7,22 +9,30 @@ import { json, todayInAmsterdam } from "../_shared.js";
 export async function onRequestGet({ env }) {
   const today = todayInAmsterdam();
 
+  // Eerst de set datums begrenzen, daarna joinen — anders snijdt LIMIT
+  // poll_options-rijen weg en krijg je een poll terug met te weinig opties.
   const result = await env.DB.prepare(
-    `SELECT p.date, p.question,
+    `WITH recent AS (
+       SELECT date, question
+         FROM polls
+        WHERE date < ?1
+     ORDER BY date DESC
+        LIMIT ?2
+     )
+     SELECT r.date, r.question,
             po.letter, po.source, po.title, po.link, po.duration_sec,
             COALESCE(vc.cnt, 0) AS count
-       FROM polls p
-       JOIN poll_options po ON po.poll_date = p.date
+       FROM recent r
+       JOIN poll_options po ON po.poll_date = r.date
   LEFT JOIN (
             SELECT poll_date, letter, COUNT(*) AS cnt
               FROM votes
+             WHERE poll_date < ?1
           GROUP BY poll_date, letter
-       ) vc ON vc.poll_date = p.date AND vc.letter = po.letter
-      WHERE p.date < ?
-   ORDER BY p.date DESC, po.letter
-      LIMIT 200`
+       ) vc ON vc.poll_date = r.date AND vc.letter = po.letter
+   ORDER BY r.date DESC, po.letter`
   )
-    .bind(today)
+    .bind(today, ARCHIVE_LIMIT)
     .all();
 
   const byDate = new Map();
@@ -49,19 +59,36 @@ export async function onRequestGet({ env }) {
     });
   }
 
-  const polls = Array.from(byDate.values()).map((p) => {
-    const winner = p.options.reduce(
-      (best, o) => (o.count > best.count ? o : best),
-      p.options[0]
-    );
-    return {
-      ...p,
-      winner:
-        winner && winner.count > 0
-          ? { letter: winner.letter, source: winner.source, count: winner.count }
-          : null,
-    };
-  });
+  const polls = Array.from(byDate.values()).map((p) => ({
+    ...p,
+    winner: pickWinner(p.options),
+  }));
 
   return json({ polls });
+}
+
+function pickWinner(options) {
+  if (!options.length) return null;
+  let max = 0;
+  let leaders = [];
+  for (const o of options) {
+    if (o.count > max) {
+      max = o.count;
+      leaders = [o];
+    } else if (o.count === max && max > 0) {
+      leaders.push(o);
+    }
+  }
+  if (!leaders.length || max === 0) return null;
+  if (leaders.length > 1) {
+    return { tied: true, count: max, sources: leaders.map((o) => o.source) };
+  }
+  const w = leaders[0];
+  return {
+    tied: false,
+    letter: w.letter,
+    source: w.source,
+    title: w.title,
+    count: w.count,
+  };
 }
