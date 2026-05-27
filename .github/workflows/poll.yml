@@ -13,6 +13,8 @@ permissions:
 jobs:
   generate:
     runs-on: ubuntu-latest
+    env:
+      HAS_CF: ${{ secrets.CLOUDFLARE_API_TOKEN != '' && secrets.CLOUDFLARE_ACCOUNT_ID != '' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -23,7 +25,7 @@ jobs:
           python-version: "3.12"
           cache: pip
 
-      - name: Install dependencies
+      - name: Install Python dependencies
         run: pip install -r requirements.txt
 
       - name: Generate poll
@@ -35,6 +37,28 @@ jobs:
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
           SMTP_STARTTLS: ${{ secrets.SMTP_STARTTLS }}
         run: python poll.py
+
+      - name: Setup Node (for Wrangler)
+        if: env.HAS_CF == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Push poll to Cloudflare D1
+        if: env.HAS_CF == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          D1_DATABASE_NAME: ${{ secrets.D1_DATABASE_NAME }}
+        run: |
+          today=$(TZ=Europe/Amsterdam date +%F)
+          sql="out/${today}.sql"
+          if [ ! -f "$sql" ]; then
+            echo "Geen SQL-bestand voor $today — sla D1-push over."
+            exit 0
+          fi
+          db_name="${D1_DATABASE_NAME:-podcastkiezer-db}"
+          npx --yes wrangler@latest d1 execute "$db_name" --remote --file "$sql"
 
       - name: Commit log
         run: |

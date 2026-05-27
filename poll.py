@@ -13,6 +13,7 @@ from zoneinfo import ZoneInfo
 import yaml
 
 from channels import (
+    render_d1_sql,
     render_markdown_log,
     render_solution,
     render_whatsapp,
@@ -81,7 +82,10 @@ def main(argv: list[str] | None = None) -> int:
     log_path.write_text(
         render_markdown_log(today, poll_text, solution_text), encoding="utf-8"
     )
-    print(f"\nLogboek: {log_path.relative_to(ROOT)}\n")
+    sql_path = OUT_DIR / f"{today.isoformat()}.sql"
+    sql_path.write_text(render_d1_sql(today, shuffled, missing), encoding="utf-8")
+    print(f"\nLogboek: {log_path.relative_to(ROOT)}")
+    print(f"D1 SQL:  {sql_path.relative_to(ROOT)}\n")
     print(poll_text)
 
     if args.no_send:

@@ -1,57 +1,111 @@
 # Podcastkiezer
 
-Trekt elke dag de kop van de hoofdaflevering van **NRC Vandaag**, **De Dag (NOS)**, **Elke Dag (Volkskrant)** en **Dagkoersen (FD)**, husselt de volgorde, en levert een poll-template die je in een WhatsApp-groep kunt plakken. Bedoeld voor redactionele discussie over koerskeuzes.
+Trekt elke dag de kop van de hoofdaflevering van **NRC Vandaag**, **De Dag (NOS)**, **Elke Dag (Volkskrant)** en **Dagkoersen (FD)**, husselt de volgorde, en serveert het op twee manieren:
 
-## Wat krijg je terug
+1. **WhatsApp-poll-template** (+ optioneel Slack/mail) — om in een groep te plakken.
+2. **Webinterface** op Cloudflare Pages waar mensen anoniem kunnen stemmen, met de bronnen pas zichtbaar na stem en een archief van eerdere polls.
 
-Per run schrijft het script een Markdown-logboek naar `out/YYYY-MM-DD.md` met:
-- de **WhatsApp-poll-template** (vraag + 4 opties met letters A–D, gehusseld);
-- de **oplossing** (welke letter bij welke titel hoort), inclusief links.
+## Architectuur
 
-Als de bijbehorende GitHub Actions secrets zijn gezet, wordt het ook naar Slack en/of e-mail gestuurd.
+```
+GitHub Actions (cron 14:00 UTC)
+       │
+       ▼ poll.py
+out/YYYY-MM-DD.md   ← logboek (gecommit naar de repo)
+out/YYYY-MM-DD.sql  ← INSERTs voor D1
+       │
+       ▼ wrangler d1 execute
+Cloudflare D1 ◄──► Cloudflare Pages Functions (/api/*) ◄──► browser (web/)
+```
 
-## Lokaal draaien
+## Lokaal draaien (alleen poll, geen webinterface)
 
 ```bash
 pip install -r requirements.txt
 python poll.py
 ```
 
-Handig voor debug:
+Debug-vlaggen:
 
 ```bash
-python poll.py --date 2026-05-26   # voor een specifieke dag
-python poll.py --no-send           # geen Slack/mail, alleen logboek
+python poll.py --date 2026-05-26   # forceer een specifieke dag
+python poll.py --no-send           # geen Slack/mail, alleen logboek + SQL
 ```
 
-## Automatisch draaien op GitHub Actions
+## GitHub Actions
 
-De workflow staat in `.github/workflows/poll.yml` en draait dagelijks om **14:00 UTC** (= 15:00 wintertijd / 16:00 zomertijd in Nederland — GitHub Actions cron ondersteunt geen DST). Aanpassen kan via de `cron`-regel.
+`.github/workflows/poll.yml` draait dagelijks om **14:00 UTC** (= 15:00 wintertijd / 16:00 zomertijd in NL — GitHub Actions cron ondersteunt geen DST). Aanpassen kan via de `cron`-regel.
 
-### Eerste keer aanzetten
+Scheduled workflows draaien **alleen vanaf de default branch**, dus deze branch moet naar `main` gemerged worden voor de cron daadwerkelijk start. Handmatig testen kan vanaf elke branch via **Actions → Daily poll → Run workflow**.
 
-1. Push deze branch naar GitHub en merge naar de default branch (`main`). Scheduled workflows draaien **alleen** vanaf de default branch.
-2. Op GitHub: tab **Actions** → workflows zijn standaard aan voor je eigen repo.
-3. Handmatig testen: tab **Actions** → "Daily poll" → **Run workflow**.
+## Webinterface op Cloudflare Pages
 
-### Secrets toevoegen (optioneel)
+Eenmalig opzetten. Je hebt een Cloudflare-account nodig (gratis).
 
-Repo → **Settings** → **Secrets and variables** → **Actions** → **New repository secret**:
+### 1. Lokaal Wrangler installeren
 
-| Secret | Wanneer instellen |
+```bash
+npm install -g wrangler
+wrangler login   # opent een browser
+```
+
+### 2. D1-database aanmaken
+
+```bash
+wrangler d1 create podcastkiezer-db
+```
+
+De output bevat een `database_id`. Plak die in `wrangler.toml` op de plek van `REPLACE_WITH_REAL_ID` en commit dat.
+
+### 3. Schema laden
+
+```bash
+wrangler d1 migrations apply podcastkiezer-db --remote
+```
+
+### 4. Pages-project koppelen aan deze repo
+
+In de Cloudflare-dashboard:
+
+- **Workers & Pages → Create → Pages → Connect to Git** → kies deze repo.
+- Build settings: **Build command** leeg laten, **Build output directory** = `web`.
+- Na het eerste deploy: **Settings → Functions → D1 database bindings → Add binding**:
+  - Variable name: `DB`
+  - D1 database: `podcastkiezer-db`
+- Trigger één **Retry deployment** zodat de binding actief wordt.
+
+De site is dan bereikbaar op `https://podcastkiezer.pages.dev` (of de custom domain die je instelt).
+
+### 5. GitHub Actions toegang geven tot D1
+
+In Cloudflare-dashboard: **My Profile → API Tokens → Create Token**. Gebruik de template **"Edit Cloudflare Workers"** (of een custom token met `Account: D1: Edit` permission). Kopieer het token.
+
+Je `Account ID` staat rechtsboven in de Cloudflare-dashboard (URL of sidebar).
+
+In GitHub: **Settings → Secrets and variables → Actions → New repository secret**:
+
+| Secret | Waarde |
 | --- | --- |
-| `SLACK_WEBHOOK_URL` | Als je naar Slack wil posten. Maak een Incoming Webhook in Slack en plak de URL. |
-| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD` | Als je mail wil versturen. `SMTP_STARTTLS=false` zet TLS uit (standaard aan). |
+| `CLOUDFLARE_API_TOKEN` | Het token van net |
+| `CLOUDFLARE_ACCOUNT_ID` | Je Cloudflare account-ID |
+| `D1_DATABASE_NAME` | `podcastkiezer-db` (alleen nodig als je een andere naam gebruikt) |
 
-Zet je niets in, dan slaat het script die kanalen stilletjes over en blijft het logboek de bron van waarheid.
+Zodra deze twee secrets gezet zijn, pusht de workflow elke run de poll naar D1 en wordt de webinterface bijgewerkt. Zonder deze secrets blijft de poll lokaal in `out/` en doet de workflow gewoon de markdown/Slack/mail.
 
-### Mail-ontvangers en afzender
+### 6. (Optioneel) Slack & mail
 
-Staan in `config.yaml` onder `mail:`. Pas die aan voor je redactie.
+Zelfde secrets-pagina:
 
-## Hoe wordt de "hoofdaflevering" gekozen?
+| Secret | Wanneer |
+| --- | --- |
+| `SLACK_WEBHOOK_URL` | Voor Slack-bericht. Maak een Incoming Webhook in Slack. |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD` | Voor e-mail. `SMTP_STARTTLS=false` zet TLS uit (default aan). |
 
-Per feed: de aflevering met `pubDate` van vandaag (NL-tijd) met de **langste duur** (`itunes:duration`). Korte oproepjes en trailers vallen daarmee in de regel af. Als geen enkele aflevering van vandaag is gepubliceerd voor een feed, wordt die titel als "geen aflevering vandaag" gemeld in de poll en bevat de poll 3 opties in plaats van 4.
+Mail-ontvangers en afzender staan in `config.yaml` onder `mail:`.
+
+## Hoofdaflevering versus oproepjes
+
+Per feed neemt het script de aflevering met `pubDate` van vandaag (NL-tijd) met de **langste duur** (`itunes:duration`). Korte trailers en oproepjes vallen daarmee in de regel af. Als geen enkele aflevering van vandaag is gepubliceerd voor een feed, wordt die titel als "geen aflevering vandaag" gemeld in de poll en bevat de poll 3 opties in plaats van 4.
 
 ## Feeds aanpassen
 

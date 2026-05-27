@@ -1,0 +1,10 @@
+name = "podcastkiezer"
+pages_build_output_dir = "web"
+compatibility_date = "2025-05-01"
+
+# Vul `database_id` in nadat je `wrangler d1 create podcastkiezer-db` hebt gedraaid.
+[[d1_databases]]
+binding = "DB"
+database_name = "podcastkiezer-db"
+database_id = "REPLACE_WITH_REAL_ID"
+migrations_dir = "migrations"
