@@ -125,3 +125,13 @@ Per feed neemt het script de aflevering met `pubDate` van vandaag (NL-tijd) met 
 ## Feeds aanpassen
 
 `config.yaml` — voeg toe of vervang. De volgorde in `config.yaml` doet er niet toe; de poll husselt elke dag (deterministisch op datum, dus reproduceerbaar bij her-runs).
+
+Per feed kun je optioneel een `exclude_title` regex meegeven om bepaalde afleveringen te filteren — handig als een feed naast de dagelijkse show ook docu-series of bonus-content publiceert. Voorbeeld voor FD:
+
+```yaml
+- name: "Dagkoersen (FD)"
+  url: "..."
+  exclude_title: "^Aflevering \\d+"   # filter serie-afleveringen
+```
+
+De regex wordt met `re.search` op de aflevering-titel toegepast (niet anchored tenzij je `^` zet).

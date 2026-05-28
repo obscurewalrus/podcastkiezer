@@ -7,6 +7,10 @@ feeds:
     url: "https://www.omnycontent.com/d/playlist/33dbd2dc-d464-471d-9feb-abae00330078/052ccb8e-7484-4095-bdba-acbc00f34a07/e1c18ea7-7349-4f07-a1e3-acbc00f36fe5/podcast.rss"
   - name: "Dagkoersen (FD)"
     url: "https://www.omnycontent.com/d/playlist/8257a063-6be9-42fa-b892-acd4013b1255/7c7183f7-003f-4fcf-a5e3-addc00ff4d48/610741e8-1c7a-4f89-ae3e-addc00ffe9ca/podcast.rss"
+    # FD publiceert docu-series ("De strijd om Nexperia" etc.) in
+    # dezelfde feed als de dagelijkse Dagkoersen. Filter serie-
+    # afleveringen weg — titels beginnen consistent met "Aflevering N:".
+    exclude_title: "^Aflevering \\d+"
 
 mail:
   from: "podcastkiezer@example.com"

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from datetime import date, datetime
 from zoneinfo import ZoneInfo
@@ -91,13 +92,21 @@ def _artwork_url(parsed_feed, entry) -> str | None:
     return None
 
 
-def fetch_main_episode(source: str, url: str, today: date) -> Episode | None:
+def fetch_main_episode(
+    source: str,
+    url: str,
+    today: date,
+    *,
+    exclude_title: str | None = None,
+) -> Episode | None:
     """Return the main episode of `today` for `source`, or None if absent.
 
-    Strategy: of the entries with pubDate on `today` in NL time, pick the
-    longest (itunes:duration). Falls back to the earliest if duration is
-    missing on all. Aimed at filtering out short oproepjes and trailers.
+    Strategy: of de entries met pubDate op `today` in NL-tijd, pak de
+    langste (itunes:duration). `exclude_title` is een optionele regex
+    (`re.search`) die titels filtert vóór de selectie — handig voor
+    feeds die docu-series in dezelfde stroom publiceren (bv. FD).
     """
+    exclude_re = re.compile(exclude_title) if exclude_title else None
     parsed = feedparser.parse(url)
     candidates: list[tuple[int, datetime, object]] = []
     for entry in parsed.entries:
@@ -107,6 +116,9 @@ def fetch_main_episode(source: str, url: str, today: date) -> Episode | None:
         pub_utc = datetime(*published_parsed[:6], tzinfo=UTC)
         pub_local = pub_utc.astimezone(TZ)
         if pub_local.date() != today:
+            continue
+        title = (entry.title or "").strip()
+        if exclude_re and exclude_re.search(title):
             continue
         duration = _parse_duration(entry.get("itunes_duration")) or 0
         candidates.append((duration, pub_local, entry))

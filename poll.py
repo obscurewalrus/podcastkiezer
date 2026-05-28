@@ -52,7 +52,12 @@ def main(argv: list[str] | None = None) -> int:
     for feed in config["feeds"]:
         name = feed["name"]
         try:
-            ep = fetch_main_episode(name, feed["url"], today)
+            ep = fetch_main_episode(
+                name,
+                feed["url"],
+                today,
+                exclude_title=feed.get("exclude_title"),
+            )
         except Exception as exc:
             print(f"⚠️  Feed {name!r} faalde: {exc}", file=sys.stderr)
             ep = None
