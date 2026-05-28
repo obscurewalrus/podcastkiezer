@@ -136,16 +136,24 @@ node scripts/gen_vapid.js
 
 De output bevat drie waarden om in te stellen.
 
-**3. In Cloudflare Pages → Settings → Variables and Secrets → Production:**
+**3a. Plain env-vars in `wrangler.toml`** (omdat dit bestand bestaat, beheert Cloudflare Pages de niet-geheime variabelen daar, niet via de dashboard):
 
-| Variabele | Type | Waarde |
-| --- | --- | --- |
-| `VAPID_PUBLIC_KEY` | Plain | Public key uit het script |
-| `VAPID_SUBJECT` | Plain | `mailto:` adres dat push-services kunnen contacteren bij problemen |
-| `VAPID_PRIVATE_KEY_JWK` | Encrypted | JWK-string uit het script |
-| `PUSH_BROADCAST_SECRET` | Encrypted | Random secret uit het script |
+```toml
+[vars]
+VAPID_PUBLIC_KEY = "<public key uit gen_vapid.js>"
+VAPID_SUBJECT = "mailto:redactie@voorbeeld.nl"
+```
 
-Klik **Retry deployment** zodat de nieuwe variabelen actief worden.
+Commit + push deze wijziging; Cloudflare Pages deployt automatisch.
+
+**3b. Secrets via de Cloudflare-dashboard** → Pages-project → Settings → Variables and Secrets → Production → Encrypt:
+
+| Secret | Waarde |
+| --- | --- |
+| `VAPID_PRIVATE_KEY_JWK` | JWK-string uit het script |
+| `PUSH_BROADCAST_SECRET` | Random secret uit het script |
+
+Klik na de secret-toevoeging **Retry deployment** zodat ze actief worden.
 
 **4. In GitHub → Settings → Secrets and variables → Actions:**
 

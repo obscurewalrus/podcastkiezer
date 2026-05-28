@@ -10,3 +10,12 @@ compatibility_date = "2025-05-01"
 binding = "DB"
 database_name = "podcastkiezer-db"
 database_id = "4207701a-51aa-4d49-ae9c-b609035afc81"
+
+# Plain environment variables (publiek; geen geheimen).
+# Vul VAPID_PUBLIC_KEY in met de waarde uit `node scripts/gen_vapid.js`,
+# en zet VAPID_SUBJECT op een echt mailadres dat push-services kunnen
+# benaderen bij problemen. Secrets (VAPID_PRIVATE_KEY_JWK en
+# PUSH_BROADCAST_SECRET) blijven via de Cloudflare-dashboard.
+[vars]
+VAPID_PUBLIC_KEY = ""
+VAPID_SUBJECT = "mailto:redactie@voorbeeld.nl"
