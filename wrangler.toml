@@ -17,5 +17,5 @@ database_id = "4207701a-51aa-4d49-ae9c-b609035afc81"
 # benaderen bij problemen. Secrets (VAPID_PRIVATE_KEY_JWK en
 # PUSH_BROADCAST_SECRET) blijven via de Cloudflare-dashboard.
 [vars]
-VAPID_PUBLIC_KEY = ""
-VAPID_SUBJECT = "mailto:redactie@voorbeeld.nl"
+VAPID_PUBLIC_KEY = "BDnK_rf0bPvM8WUM27mSHJDUMTnb9oRJGwS0guNWj1MlenXwVux4yQRx6gLXO4UXCFZaWQR7Fyzhq2YD_vYtxek"
+VAPID_SUBJECT = "mailto:l.brouwers@nrc.nl"
