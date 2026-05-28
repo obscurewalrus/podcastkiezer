@@ -2,9 +2,12 @@ name: Daily poll
 
 on:
   schedule:
-    # 14:00 UTC = 15:00 winter / 16:00 zomer (NL).
-    # Cron in GitHub Actions is altijd UTC en kent geen DST.
-    - cron: "0 14 * * *"
+    # 16:00 UTC = 17:00 winter (CET) / 18:00 zomer (CEST) — altijd ná
+    # Elke Dag (VK) die rond 16:30 NL publiceert. GitHub Actions cron
+    # is altijd UTC en kent geen DST, dus je kunt niet beide seizoenen
+    # tegelijk op precies 17:00 NL prikken; deze keuze is altijd
+    # compleet ten koste van een uur later in de zomer.
+    - cron: "0 16 * * *"
   workflow_dispatch: {}
 
 permissions:

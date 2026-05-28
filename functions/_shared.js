@@ -132,11 +132,11 @@ export function noPollMessage(requestedDate, today) {
         "De eerste podcasts (NRC Vandaag, Dagkoersen) verschijnen rond 05:00. Kom dan terug.",
     };
   }
-  if (hour < 15) {
+  if (hour < 18) {
     return {
       reason: "before_publish",
       message:
-        "Nog niet alle dagelijkse podcasts zijn gepubliceerd — NOS De Dag en VK Elke Dag komen rond 14:30. De poll verschijnt rond 15:00.",
+        "Niet alle dagelijkse podcasts zijn vandaag al gepubliceerd — Elke Dag (VK) komt pas rond 16:30. De poll verschijnt in de loop van de namiddag.",
     };
   }
   return {
