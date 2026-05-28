@@ -72,22 +72,46 @@ def _sql_literal(value) -> str:
 
 
 def render_d1_sql(today: date, shuffled: list[Episode], missing: list[str]) -> str:
-    """SQL voor D1 om deze poll te registreren. Idempotent dankzij `OR IGNORE`."""
+    """SQL voor D1 om deze poll te registreren.
+
+    Zelfhelend: als de huidige poll-rij voor `today` als incompleet
+    gemarkeerd staat (`missing != '[]'`, bijv. een eerdere run die te
+    vroeg liep), wissen we eerst alle gerelateerde rijen voor die dag
+    en bouwen we opnieuw op. Dat herhusselt ook de letter-volgorde,
+    dus eventuele stemmen op een partial-poll horen mee gewist te
+    worden — anders wijzen die naar verkeerde bronnen.
+
+    Als de bestaande poll compleet was (`missing = '[]'`) zijn alle
+    statements no-ops dankzij de WHERE-clauses en `OR IGNORE`.
+    """
     created_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     missing_json = json.dumps(missing, ensure_ascii=False)
+    date_lit = _sql_literal(today.isoformat())
+
+    # Voorwaarde voor opruimen — losgetrokken zodat we 'm in elke DELETE
+    # kunnen hergebruiken. Belangrijk: child-rijen vóór de polls-rij
+    # wissen, anders is de EXISTS-check niet meer waar.
+    incomplete_clause = (
+        f"EXISTS (SELECT 1 FROM polls "
+        f"WHERE date = {date_lit} AND missing != '[]')"
+    )
 
     stmts = [
+        f"DELETE FROM votes WHERE poll_date = {date_lit} AND {incomplete_clause};",
+        f"DELETE FROM voter_reveals WHERE poll_date = {date_lit} AND {incomplete_clause};",
+        f"DELETE FROM poll_options WHERE poll_date = {date_lit} AND {incomplete_clause};",
+        f"DELETE FROM polls WHERE date = {date_lit} AND missing != '[]';",
         "INSERT OR IGNORE INTO polls (date, created_at, question, missing) VALUES ("
-        f"{_sql_literal(today.isoformat())}, "
+        f"{date_lit}, "
         f"{_sql_literal(created_at)}, "
         f"{_sql_literal(POLL_QUESTION)}, "
-        f"{_sql_literal(missing_json)});"
+        f"{_sql_literal(missing_json)});",
     ]
     for i, ep in enumerate(shuffled):
         stmts.append(
             "INSERT OR IGNORE INTO poll_options "
             "(poll_date, letter, source, title, link, duration_sec, artwork_url) VALUES ("
-            f"{_sql_literal(today.isoformat())}, "
+            f"{date_lit}, "
             f"{_sql_literal(LETTERS[i])}, "
             f"{_sql_literal(ep.source)}, "
             f"{_sql_literal(ep.title)}, "
