@@ -107,6 +107,17 @@ Zelfde secrets-pagina:
 
 Mail-ontvangers en afzender staan in `config.yaml` onder `mail:`.
 
+## Als app op je beginscherm (PWA)
+
+De site is een installeerbare Progressive Web App. Geen App Store nodig:
+
+- **iPhone (iOS 16.4+):** open de site in Safari → deelknop onderin → "Zet op beginscherm".
+- **Android (Chrome):** menu rechtsboven → "App installeren" of "Toevoegen aan startscherm".
+
+Daarna heeft 'ie een eigen icoon, opent in volledig scherm zonder browser-chrome, en biedt een eenvoudige offline-fallback voor de UI. Push-notificaties bij een nieuwe poll komen in fase 2.
+
+Iconen worden gegenereerd door `scripts/generate_icons.py` (genereert PNGs in 180/192/512 + een SVG). Pas dat script aan als je de huisstijl wijzigt.
+
 ## Hoofdaflevering versus oproepjes
 
 Per feed neemt het script de aflevering met `pubDate` van vandaag (NL-tijd) met de **langste duur** (`itunes:duration`). Korte trailers en oproepjes vallen daarmee in de regel af. Als geen enkele aflevering van vandaag is gepubliceerd voor een feed, wordt die titel als "geen aflevering vandaag" gemeld in de poll en bevat de poll 3 opties in plaats van 4.
