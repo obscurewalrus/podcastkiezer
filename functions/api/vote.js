@@ -1,5 +1,6 @@
 import {
   fetchPoll,
+  getVoterStatus,
   isValidDate,
   json,
   parseCookies,
@@ -17,7 +18,7 @@ export async function onRequestPost({ request, env }) {
   }
 
   const date = body?.date;
-  const letter = body?.letter;
+  const letter = body?.letter ?? null; // null = stem intrekken
   const today = todayInAmsterdam();
 
   if (!isValidDate(date)) {
@@ -29,7 +30,7 @@ export async function onRequestPost({ request, env }) {
       { status: 403 }
     );
   }
-  if (typeof letter !== "string" || !/^[A-Z]$/.test(letter)) {
+  if (letter !== null && (typeof letter !== "string" || !/^[A-Z]$/.test(letter))) {
     return json({ error: "Ongeldige optie." }, { status: 400 });
   }
 
@@ -49,28 +50,47 @@ export async function onRequestPost({ request, env }) {
   if (!poll) {
     return json({ error: "Geen poll voor vandaag." }, { status: 404 });
   }
-  if (!poll.options.some((o) => o.letter === letter)) {
+  if (letter !== null && !poll.options.some((o) => o.letter === letter)) {
     return json({ error: "Onbekende optie voor deze poll." }, { status: 400 });
   }
 
   const now = new Date().toISOString();
-  await env.DB.prepare(
-    `INSERT INTO votes (poll_date, voter_id, letter, created_at)
-     VALUES (?1, ?2, ?3, ?4)
-     ON CONFLICT(poll_date, voter_id)
-       DO UPDATE SET letter = excluded.letter, created_at = excluded.created_at`
-  )
-    .bind(date, voterId, letter, now)
-    .run();
+  if (letter === null) {
+    // Stem intrekken; voter_reveals blijft staan zodat de bronnen
+    // zichtbaar blijven — ze hebben ze immers al gezien.
+    await env.DB.prepare(
+      "DELETE FROM votes WHERE poll_date = ? AND voter_id = ?"
+    )
+      .bind(date, voterId)
+      .run();
+  } else {
+    await env.DB.prepare(
+      `INSERT INTO votes (poll_date, voter_id, letter, created_at)
+       VALUES (?1, ?2, ?3, ?4)
+       ON CONFLICT(poll_date, voter_id)
+         DO UPDATE SET letter = excluded.letter, created_at = excluded.created_at`
+    )
+      .bind(date, voterId, letter, now)
+      .run();
+    await env.DB.prepare(
+      `INSERT OR IGNORE INTO voter_reveals (poll_date, voter_id, revealed_at)
+       VALUES (?1, ?2, ?3)`
+    )
+      .bind(date, voterId, now)
+      .run();
+  }
 
-  // Werk de tellingen bij door één SELECT te draaien; de letter weten we al
-  // (we hebben 'm net geschreven), dus we slaan een tweede getVoterVote-query
-  // over en vermijden read-after-write-replica-issues.
-  const refreshed = await fetchPoll(env, date);
+  // Tellingen verversen — we kennen de huidige `letter` al, maar voor de
+  // `revealed`-vlag (na een eerste stem of deselect) en de bijgewerkte
+  // tellingen halen we een status + poll op.
+  const [refreshed, status] = await Promise.all([
+    fetchPoll(env, date),
+    getVoterStatus(env, date, voterId),
+  ]);
   const shaped = shapePoll(refreshed, {
     isToday: true,
-    hasVoted: true,
-    yourVote: letter,
+    revealed: status.revealed,
+    yourVote: status.vote,
   });
 
   return json(shaped);

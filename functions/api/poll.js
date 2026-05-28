@@ -1,9 +1,10 @@
 import {
   ensureVoterId,
   fetchPoll,
-  getVoterVote,
+  getVoterStatus,
   isValidDate,
   json,
+  noPollMessage,
   shapePoll,
   todayInAmsterdam,
 } from "../_shared.js";
@@ -20,8 +21,9 @@ export async function onRequestGet({ request, env }) {
 
   const poll = await fetchPoll(env, date);
   if (!poll) {
+    const ctx = noPollMessage(date, today);
     return json(
-      { error: "Geen poll voor deze datum.", date },
+      { error: "Geen poll voor deze datum.", date, ...ctx },
       { status: 404 }
     );
   }
@@ -29,11 +31,11 @@ export async function onRequestGet({ request, env }) {
   const { voterId, extraHeaders } = ensureVoterId(request);
 
   const isToday = date === today;
-  const yourVote = await getVoterVote(env, date, voterId);
+  const status = await getVoterStatus(env, date, voterId);
   const shaped = shapePoll(poll, {
     isToday,
-    hasVoted: !!yourVote,
-    yourVote,
+    revealed: status.revealed,
+    yourVote: status.vote,
   });
 
   return json(shaped, { headers: extraHeaders });

@@ -62,6 +62,7 @@ De output bevat een `database_id`. Je hebt 'm zo nodig in stap 4 om de binding i
 ```bash
 wrangler d1 execute podcastkiezer-db --remote --file migrations/0001_init.sql
 wrangler d1 execute podcastkiezer-db --remote --file migrations/0002_artwork.sql
+wrangler d1 execute podcastkiezer-db --remote --file migrations/0003_voter_reveals.sql
 ```
 
 Bij toekomstige migrations: voer nieuwe `migrations/00NN_*.sql`-bestanden in volgorde uit.

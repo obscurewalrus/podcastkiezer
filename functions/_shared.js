@@ -74,6 +74,78 @@ export function ensureVoterId(request) {
   return { voterId, extraHeaders };
 }
 
+function dayOfWeekUtc(isoDate) {
+  // 0 = zondag, 6 = zaterdag. Middag-UTC zodat DST de dag niet kantelt.
+  const d = new Date(isoDate + "T12:00:00Z");
+  return d.getUTCDay();
+}
+
+function currentHourAmsterdam() {
+  const s = new Intl.DateTimeFormat("en-GB", {
+    timeZone: TZ,
+    hour: "2-digit",
+    hour12: false,
+  }).format(new Date());
+  return parseInt(s, 10);
+}
+
+/**
+ * Geef een Nederlandse uitleg waarom een datum (nog) geen poll heeft.
+ * `requestedDate` is een YYYY-MM-DD-string; `today` ook.
+ */
+export function noPollMessage(requestedDate, today) {
+  if (requestedDate > today) {
+    return {
+      reason: "future",
+      message: "Deze datum ligt nog in de toekomst.",
+    };
+  }
+  if (requestedDate < today) {
+    const dow = dayOfWeekUtc(requestedDate);
+    if (dow === 0 || dow === 6) {
+      return {
+        reason: "past_weekend",
+        message:
+          "Op deze dag was het weekend — niet alle dagelijkse podcasts publiceren dan.",
+      };
+    }
+    return {
+      reason: "past_missing",
+      message:
+        "Op deze dag is geen poll gegenereerd — misschien een feestdag of een storing in de feeds.",
+    };
+  }
+  // requestedDate === today
+  const dow = dayOfWeekUtc(today);
+  if (dow === 0 || dow === 6) {
+    return {
+      reason: "weekend",
+      message:
+        "Het is weekend — niet alle dagelijkse podcasts publiceren vandaag. Kom maandag terug voor een nieuwe poll.",
+    };
+  }
+  const hour = currentHourAmsterdam();
+  if (hour < 5) {
+    return {
+      reason: "too_early",
+      message:
+        "De eerste podcasts (NRC Vandaag, Dagkoersen) verschijnen rond 05:00. Kom dan terug.",
+    };
+  }
+  if (hour < 15) {
+    return {
+      reason: "before_publish",
+      message:
+        "Nog niet alle dagelijkse podcasts zijn gepubliceerd — NOS De Dag en VK Elke Dag komen rond 14:30. De poll verschijnt rond 15:00.",
+    };
+  }
+  return {
+    reason: "delayed",
+    message:
+      "De poll van vandaag wordt zo gegenereerd. Vernieuw zo de pagina.",
+  };
+}
+
 export function json(body, init = {}) {
   const headers = new Headers(init.headers || {});
   headers.set("Content-Type", "application/json; charset=utf-8");
@@ -131,22 +203,30 @@ export async function fetchPoll(env, date) {
   };
 }
 
-export async function getVoterVote(env, date, voterId) {
-  if (!voterId) return null;
-  const row = await env.DB.prepare(
-    "SELECT letter FROM votes WHERE poll_date = ? AND voter_id = ?"
-  )
-    .bind(date, voterId)
-    .first();
-  return row ? row.letter : null;
+export async function getVoterStatus(env, date, voterId) {
+  if (!voterId) return { vote: null, revealed: false };
+  const [voteRow, revealRow] = await Promise.all([
+    env.DB.prepare("SELECT letter FROM votes WHERE poll_date = ? AND voter_id = ?")
+      .bind(date, voterId)
+      .first(),
+    env.DB.prepare("SELECT 1 AS x FROM voter_reveals WHERE poll_date = ? AND voter_id = ?")
+      .bind(date, voterId)
+      .first(),
+  ]);
+  return {
+    vote: voteRow ? voteRow.letter : null,
+    revealed: !!revealRow,
+  };
 }
 
 /**
- * Verberg `source`/`link` als er nog niet is gestemd op een actieve poll.
+ * Verberg `source`/`link` als er op een actieve poll nog niet ooit
+ * gestemd is door deze browser. Bronnen blijven wel zichtbaar als
+ * iemand zijn stem heeft ingetrokken (ze hebben ze al gezien).
  * Past poll = altijd alles tonen.
  */
-export function shapePoll(poll, { isToday, hasVoted, yourVote }) {
-  const hideAnswers = isToday && !hasVoted;
+export function shapePoll(poll, { isToday, revealed, yourVote }) {
+  const hideAnswers = isToday && !revealed;
   return {
     date: poll.date,
     created_at: poll.created_at,

@@ -5,12 +5,17 @@ async function fetchPoll(date) {
   const res = await fetch(url, { credentials: "same-origin" });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new Error(body.error || `Fout ${res.status}`);
+    // Server geeft soms een context-afhankelijke uitleg mee (geen poll
+    // vandaag omdat het te vroeg is, weekend, etc.) — gebruik die.
+    const err = new Error(body.message || body.error || `Fout ${res.status}`);
+    err.reason = body.reason;
+    throw err;
   }
   return res.json();
 }
 
 async function castVote(date, letter) {
+  // `letter` is een string A-Z, óf null om je stem in te trekken.
   const res = await fetch("/api/vote", {
     method: "POST",
     credentials: "same-origin",
@@ -48,12 +53,21 @@ function renderPoll(root, poll) {
         "Dit is een afgelopen poll — alleen om terug te kijken."
       )
     );
-  } else if (!poll.your_vote) {
+  } else if (poll.your_vote) {
     root.append(
       el(
         "p",
         { class: "notice" },
-        "Welke podcast zou jij luisteren? Klik om te stemmen. De bronnen blijven verborgen tot je hebt gestemd."
+        `Je stemde op ${poll.your_vote}. Klik een andere kaart om te wisselen, of nogmaals op ${poll.your_vote} om je stem in te trekken.`
+      )
+    );
+  } else if (poll.reveal) {
+    // Stem ingetrokken; bronnen zijn al onthuld.
+    root.append(
+      el(
+        "p",
+        { class: "notice" },
+        "Je stem is ingetrokken. Klik een kaart om opnieuw te stemmen."
       )
     );
   } else {
@@ -61,7 +75,7 @@ function renderPoll(root, poll) {
       el(
         "p",
         { class: "notice" },
-        `Je stemde op ${poll.your_vote}. Klik een andere kaart om te wisselen.`
+        "Welke podcast zou jij luisteren? Klik om te stemmen. De bronnen blijven verborgen tot je hebt gestemd."
       )
     );
   }
@@ -140,7 +154,9 @@ function renderPoll(root, poll) {
                 b.disabled = true;
               }
               try {
-                const updated = await castVote(poll.date, opt.letter);
+                // Klik op je huidige stem → intrekken; anders nieuwe stem.
+                const target = poll.your_vote === opt.letter ? null : opt.letter;
+                const updated = await castVote(poll.date, target);
                 renderPoll(root, updated);
               } catch (err) {
                 renderError(root, err.message);
@@ -176,11 +192,7 @@ async function main() {
     const poll = await fetchPoll(date);
     renderPoll(root, poll);
   } catch (err) {
-    renderError(
-      root,
-      err.message ||
-        "Er is nog geen poll voor vandaag. Probeer het later opnieuw."
-    );
+    renderError(root, err.message || "Kon de poll niet laden.");
   }
 }
 
