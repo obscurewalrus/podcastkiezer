@@ -12,6 +12,7 @@ const SHELL = [
   "/assets/app.js",
   "/assets/archive.js",
   "/assets/pwa.js",
+  "/assets/notifications.js",
   "/manifest.webmanifest",
   "/icons/icon-192.png",
   "/icons/icon-512.png",
@@ -40,6 +41,41 @@ self.addEventListener("activate", (event) => {
         keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))
       );
       await self.clients.claim();
+    })()
+  );
+});
+
+self.addEventListener("push", (event) => {
+  // We sturen payload-less push (geen encryptie nodig); de melding zelf
+  // is voor iedereen dezelfde tekst.
+  event.waitUntil(
+    self.registration.showNotification("Podcastdilemma", {
+      body: "Een nieuwe poll staat klaar — kom stemmen!",
+      icon: "/icons/icon-192.png",
+      badge: "/icons/icon-192.png",
+      tag: "podcastdilemma-daily", // overschrijft eerdere meldingen
+      data: { url: "/" },
+    })
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = (event.notification.data && event.notification.data.url) || "/";
+  event.waitUntil(
+    (async () => {
+      const all = await self.clients.matchAll({
+        type: "window",
+        includeUncontrolled: true,
+      });
+      for (const c of all) {
+        const u = new URL(c.url);
+        if (u.pathname === "/" || u.pathname === "/index.html") {
+          await c.focus();
+          return;
+        }
+      }
+      await self.clients.openWindow(url);
     })()
   );
 });

@@ -223,6 +223,48 @@ main {
   margin: 0 0 1rem;
 }
 
+.push-banner {
+  max-width: 900px;
+  margin: 1rem auto 0;
+  padding: 0.75rem 1.25rem;
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.9rem;
+  color: var(--fg);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+.push-banner p {
+  margin: 0;
+  flex: 1 1 auto;
+  color: var(--muted);
+}
+.push-button {
+  font: inherit;
+  background: var(--accent);
+  color: #fff;
+  border: 0;
+  border-radius: 999px;
+  padding: 0.4rem 0.9rem;
+  cursor: pointer;
+}
+.push-button:hover {
+  filter: brightness(1.05);
+}
+.push-link {
+  font: inherit;
+  background: none;
+  border: 0;
+  color: var(--accent);
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
 .archive-list {
   list-style: none;
   padding: 0;

@@ -114,9 +114,51 @@ De site is een installeerbare Progressive Web App. Geen App Store nodig:
 - **iPhone (iOS 16.4+):** open de site in Safari → deelknop onderin → "Zet op beginscherm".
 - **Android (Chrome):** menu rechtsboven → "App installeren" of "Toevoegen aan startscherm".
 
-Daarna heeft 'ie een eigen icoon, opent in volledig scherm zonder browser-chrome, en biedt een eenvoudige offline-fallback voor de UI. Push-notificaties bij een nieuwe poll komen in fase 2.
+Daarna heeft 'ie een eigen icoon, opent in volledig scherm zonder browser-chrome, en biedt een eenvoudige offline-fallback voor de UI.
 
 Iconen worden gegenereerd door `scripts/generate_icons.py` (genereert PNGs in 180/192/512 + een SVG). Pas dat script aan als je de huisstijl wijzigt.
+
+### Push-notificaties bij een nieuwe poll
+
+De site kan iedereen die opt-in heeft gedaan een melding sturen zodra de daily workflow een nieuwe poll naar D1 heeft geschreven. Eenmalige setup:
+
+**1. Migratie 0004 toepassen** voor de subscription-tabel:
+
+```bash
+wrangler d1 execute podcastkiezer-db --remote --file migrations/0004_push_subscriptions.sql
+```
+
+**2. VAPID-keypair + broadcast-secret genereren** (lokaal, met Node 18+):
+
+```bash
+node scripts/gen_vapid.js
+```
+
+De output bevat drie waarden om in te stellen.
+
+**3. In Cloudflare Pages → Settings → Variables and Secrets → Production:**
+
+| Variabele | Type | Waarde |
+| --- | --- | --- |
+| `VAPID_PUBLIC_KEY` | Plain | Public key uit het script |
+| `VAPID_SUBJECT` | Plain | `mailto:` adres dat push-services kunnen contacteren bij problemen |
+| `VAPID_PRIVATE_KEY_JWK` | Encrypted | JWK-string uit het script |
+| `PUSH_BROADCAST_SECRET` | Encrypted | Random secret uit het script |
+
+Klik **Retry deployment** zodat de nieuwe variabelen actief worden.
+
+**4. In GitHub → Settings → Secrets and variables → Actions:**
+
+| Secret | Waarde |
+| --- | --- |
+| `PUSH_BROADCAST_URL` | `https://<jouw-cloudflare-pages-url>/api/push/broadcast` |
+| `PUSH_BROADCAST_SECRET` | Hetzelfde secret als bij Cloudflare |
+
+Zonder deze twee laat de workflow de broadcast-stap stilletjes vallen.
+
+**5. Op het toestel zelf** — open de site (op iPhone vanaf het beginscherm na "Zet op beginscherm"), klik **"Schakel meldingen in"** boven de poll, accepteer de browser-prompt. Klaar.
+
+Vanaf dan stuurt de daily workflow elke succesvolle run een melding "Een nieuwe poll staat klaar — kom stemmen!" naar alle subscribers.
 
 ## Hoofdaflevering versus oproepjes
 

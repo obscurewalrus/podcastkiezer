@@ -23,6 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       HAS_CF: ${{ secrets.CLOUDFLARE_API_TOKEN != '' && secrets.CLOUDFLARE_ACCOUNT_ID != '' }}
+      HAS_PUSH: ${{ secrets.PUSH_BROADCAST_URL != '' && secrets.PUSH_BROADCAST_SECRET != '' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -71,6 +72,26 @@ jobs:
           tmp_cwd="$(mktemp -d)"
           cd "$tmp_cwd"
           npx --yes "wrangler@${WRANGLER_VERSION}" d1 execute "$db_name" --remote --file "$sql_abs"
+
+      - name: Broadcast push notifications
+        if: env.HAS_CF == 'true' && env.HAS_PUSH == 'true'
+        env:
+          PUSH_BROADCAST_URL: ${{ secrets.PUSH_BROADCAST_URL }}
+          PUSH_BROADCAST_SECRET: ${{ secrets.PUSH_BROADCAST_SECRET }}
+        # Niet-blocking: een gefaalde broadcast hoeft de logboek-commit
+        # niet tegen te houden. De response bevat sent/removed/failed.
+        run: |
+          set +e
+          today=$(TZ=Europe/Amsterdam date +%F)
+          if [ ! -f "out/${today}.sql" ]; then
+            echo "Geen verse poll vandaag — broadcast overslaan."
+            exit 0
+          fi
+          curl -fsS -X POST "$PUSH_BROADCAST_URL" \
+            -H "Authorization: Bearer $PUSH_BROADCAST_SECRET" \
+            -H "Content-Length: 0" \
+            && echo "" \
+            || echo "Push broadcast faalde — niet kritiek."
 
       - name: Commit log
         # Loop ook bij gefaalde D1-push — anders raken de markdown- en
