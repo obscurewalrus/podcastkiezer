@@ -28,39 +28,40 @@ def draw_icon(size: int, radius_ratio: float = 0.22) -> Image.Image:
     r = int(size * radius_ratio)
     d.rounded_rectangle((0, 0, size - 1, size - 1), radius=r, fill=ACCENT)
 
-    # Geometrie van de koptelefoon — alle waarden relatief aan `size`.
-    cx = size / 2
-    band_top = size * 0.30
-    band_bottom = size * 0.62
-    band_left = size * 0.22
-    band_right = size * 0.78
-    band_width = max(int(size * 0.07), 2)
+    # Oorschelpen — eerst posities bepalen want de boog moet daar
+    # precies bovenop aansluiten.
+    band_x_left = size * 0.22   # centrum van de linker schelp
+    band_x_right = size * 0.78
+    cup_w = size * 0.22
+    cup_h = size * 0.30
+    cup_y_top = size * 0.46
+    cup_y_bot = cup_y_top + cup_h
+    cup_r = int(cup_w * 0.42)
 
-    # Headband: bovenste helft van een ellips ("U" omgekeerd).
+    # Headband: bovenste helft van een ellips, zodat de booguiteinden
+    # precies op (band_x_left, cup_y_top) en (band_x_right, cup_y_top)
+    # uitkomen. Voor PIL.arc met start=180/end=360 ligt het 'einde'
+    # van de boog op (y0 + y1) / 2 — daarom rekenen we y1 zo terug.
+    band_apex_y = size * 0.18                              # hoog en
+    band_y_bottom = 2 * cup_y_top - band_apex_y            # symmetrisch
+    band_width = max(int(size * 0.085), 2)
     d.arc(
-        (band_left, band_top, band_right, band_bottom + (band_bottom - band_top)),
+        (band_x_left, band_apex_y, band_x_right, band_y_bottom),
         start=180,
         end=360,
         fill=WHITE,
         width=band_width,
     )
 
-    # Oorschelpen: twee afgeronde rechthoeken aan de uiteinden.
-    cup_w = size * 0.20
-    cup_h = size * 0.26
-    cup_y_top = size * 0.50
-    cup_y_bot = cup_y_top + cup_h
-    cup_r = int(cup_w * 0.40)
-
-    # Linkerschelp
+    # Schelpen tekenen ná de boog zodat ze er bovenop liggen
+    # (verhindert dat de boog-randen door de schelp heen prikken).
     d.rounded_rectangle(
-        (band_left - cup_w / 2, cup_y_top, band_left + cup_w / 2, cup_y_bot),
+        (band_x_left - cup_w / 2, cup_y_top, band_x_left + cup_w / 2, cup_y_bot),
         radius=cup_r,
         fill=WHITE,
     )
-    # Rechterschelp
     d.rounded_rectangle(
-        (band_right - cup_w / 2, cup_y_top, band_right + cup_w / 2, cup_y_bot),
+        (band_x_right - cup_w / 2, cup_y_top, band_x_right + cup_w / 2, cup_y_bot),
         radius=cup_r,
         fill=WHITE,
     )
@@ -69,13 +70,17 @@ def draw_icon(size: int, radius_ratio: float = 0.22) -> Image.Image:
 
 
 def write_svg(path: Path) -> None:
-    """Vector-versie van dezelfde tekening, voor manifest + favicon."""
+    """Vector-versie van dezelfde tekening (verhoudingen identiek aan
+    de raster-versie zodat manifest-icoon en favicon overeenkomen)."""
+    # Coordinates op 512×512 viewBox, dezelfde ratios als draw_icon().
+    # Bandboog: van (113, 236) naar (399, 236), apex bij y ≈ 92
+    # → straal 143 (exacte semicircel).
     svg = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <rect width="512" height="512" rx="113" ry="113" fill="#b9302a"/>
-  <path d="M 113 282 A 143 143 0 0 1 399 282"
-        stroke="#ffffff" stroke-width="36" fill="none" stroke-linecap="round"/>
-  <rect x="61" y="256" width="102" height="134" rx="41" fill="#ffffff"/>
-  <rect x="349" y="256" width="102" height="134" rx="41" fill="#ffffff"/>
+  <path d="M 113 236 A 143 143 0 0 1 399 236"
+        stroke="#ffffff" stroke-width="44" fill="none" stroke-linecap="round"/>
+  <rect x="56" y="236" width="113" height="154" rx="47" fill="#ffffff"/>
+  <rect x="343" y="236" width="113" height="154" rx="47" fill="#ffffff"/>
 </svg>
 """
     path.write_text(svg, encoding="utf-8")
