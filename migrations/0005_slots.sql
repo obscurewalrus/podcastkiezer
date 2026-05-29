@@ -4,8 +4,12 @@
 -- achtig model) en krijgen slot = 'morning'.
 --
 -- Geen foreign keys in dit schema, dus de drop/rename-volgorde is vrij.
+-- De `DROP TABLE IF EXISTS *_new` guards maken deze migratie herhaalbaar:
+-- als een eerdere poging halverwege afbrak, blijft er geen *_new-tabel
+-- liggen die een herhaling blokkeert.
 
 -- polls
+DROP TABLE IF EXISTS polls_new;
 CREATE TABLE polls_new (
   date        TEXT NOT NULL,
   slot        TEXT NOT NULL DEFAULT 'morning',
@@ -20,6 +24,7 @@ DROP TABLE polls;
 ALTER TABLE polls_new RENAME TO polls;
 
 -- poll_options
+DROP TABLE IF EXISTS poll_options_new;
 CREATE TABLE poll_options_new (
   poll_date     TEXT NOT NULL,
   slot          TEXT NOT NULL DEFAULT 'morning',
@@ -37,6 +42,7 @@ DROP TABLE poll_options;
 ALTER TABLE poll_options_new RENAME TO poll_options;
 
 -- votes
+DROP TABLE IF EXISTS votes_new;
 CREATE TABLE votes_new (
   poll_date   TEXT NOT NULL,
   slot        TEXT NOT NULL DEFAULT 'morning',
@@ -52,6 +58,7 @@ ALTER TABLE votes_new RENAME TO votes;
 CREATE INDEX IF NOT EXISTS idx_votes_by_poll ON votes(poll_date, slot, letter);
 
 -- voter_reveals
+DROP TABLE IF EXISTS voter_reveals_new;
 CREATE TABLE voter_reveals_new (
   poll_date    TEXT NOT NULL,
   slot         TEXT NOT NULL DEFAULT 'morning',
