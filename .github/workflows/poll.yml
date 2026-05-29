@@ -2,13 +2,19 @@ name: Daily poll
 
 on:
   schedule:
-    # 05:30 UTC = 07:30 NL zomer (CEST) / 06:30 NL winter (CET) —
-    # ochtend-ritueel. NOS en VK zijn dan nog van gisteren-middag,
-    # NRC en FD van vanochtend; fetch_main_episode pakt per feed de
-    # meest recente aflevering binnen een 72u-venster, dus alle vier
-    # zijn altijd ergens binnen redelijke verswaarde.
+    # Twee slots per dag (GitHub Actions cron is UTC, kent geen DST):
+    #  - morning  : 05:30 UTC = 07:30 NL zomer / 06:30 winter.
+    #               72u-venster: NOS/VK nog van gisteren-middag, NRC/FD vers.
+    #  - afternoon: 16:00 UTC = 18:00 NL zomer / 17:00 winter.
+    #               24u-venster: alle vier vers van vandaag. Push gaat
+    #               alleen voor dit slot uit.
     - cron: "30 5 * * *"
-  workflow_dispatch: {}
+    - cron: "0 16 * * *"
+  workflow_dispatch:
+    inputs:
+      slot:
+        description: "Welk slot: morning, afternoon, of auto (op tijd)."
+        default: "auto"
 
 permissions:
   contents: write
@@ -28,6 +34,24 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Determine slot
+        # Cron-trigger → slot uit de schedule; handmatig → input (auto =
+        # afleiden uit het NL-uur). Zet SLOT in de job-omgeving.
+        run: |
+          slot="${{ github.event.inputs.slot }}"
+          if [ -z "$slot" ] || [ "$slot" = "auto" ]; then
+            case "${{ github.event.schedule }}" in
+              "30 5 * * *") slot="morning" ;;
+              "0 16 * * *") slot="afternoon" ;;
+              *)
+                hour=$(TZ=Europe/Amsterdam date +%H)
+                if [ "$hour" -lt 12 ]; then slot="morning"; else slot="afternoon"; fi
+                ;;
+            esac
+          fi
+          echo "SLOT=$slot" >> "$GITHUB_ENV"
+          echo "Slot voor deze run: $slot"
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
@@ -45,7 +69,7 @@ jobs:
           SMTP_USER: ${{ secrets.SMTP_USER }}
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
           SMTP_STARTTLS: ${{ secrets.SMTP_STARTTLS }}
-        run: python poll.py
+        run: python poll.py --slot "$SLOT"
 
       - name: Setup Node (for Wrangler)
         if: env.HAS_CF == 'true'
@@ -63,9 +87,9 @@ jobs:
         # repo (die alleen Pages-config bevat) niet probeert te valideren.
         run: |
           today=$(TZ=Europe/Amsterdam date +%F)
-          sql_abs="$(pwd)/out/${today}.sql"
+          sql_abs="$(pwd)/out/${today}-${SLOT}.sql"
           if [ ! -f "$sql_abs" ]; then
-            echo "Geen SQL-bestand voor $today — sla D1-push over."
+            echo "Geen SQL-bestand voor ${today}-${SLOT} — sla D1-push over."
             exit 0
           fi
           db_name="${D1_DATABASE_NAME:-podcastkiezer-db}"
@@ -74,7 +98,9 @@ jobs:
           npx --yes "wrangler@${WRANGLER_VERSION}" d1 execute "$db_name" --remote --file "$sql_abs"
 
       - name: Broadcast push notifications
-        if: env.HAS_CF == 'true' && env.HAS_PUSH == 'true'
+        # Alleen 's middags pushen — één melding per dag. De ochtend-poll
+        # leeft passief op de site.
+        if: env.HAS_CF == 'true' && env.HAS_PUSH == 'true' && env.SLOT == 'afternoon'
         env:
           PUSH_BROADCAST_URL: ${{ secrets.PUSH_BROADCAST_URL }}
           PUSH_BROADCAST_SECRET: ${{ secrets.PUSH_BROADCAST_SECRET }}
@@ -83,8 +109,8 @@ jobs:
         run: |
           set +e
           today=$(TZ=Europe/Amsterdam date +%F)
-          if [ ! -f "out/${today}.sql" ]; then
-            echo "Geen verse poll vandaag — broadcast overslaan."
+          if [ ! -f "out/${today}-${SLOT}.sql" ]; then
+            echo "Geen verse middag-poll — broadcast overslaan."
             exit 0
           fi
           curl -fsS -X POST "$PUSH_BROADCAST_URL" \
@@ -104,6 +130,6 @@ jobs:
           if git diff --staged --quiet; then
             echo "Geen nieuwe logregel om te committen."
           else
-            git commit -m "Daily poll $(date -u +%Y-%m-%d)"
+            git commit -m "Daily poll $(date -u +%Y-%m-%d) ($SLOT)"
             git push
           fi

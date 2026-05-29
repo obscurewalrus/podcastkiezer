@@ -1,12 +1,17 @@
 import { el, formatDateNl } from "./util.js";
 
-async function fetchPoll(date) {
-  const url = date ? `/api/poll?date=${encodeURIComponent(date)}` : "/api/poll";
+const SLOT_LABELS = { morning: "Ochtend", afternoon: "Middag" };
+
+async function fetchPoll(date, slot) {
+  const qs = new URLSearchParams();
+  if (date) qs.set("date", date);
+  if (slot) qs.set("slot", slot);
+  const url = qs.toString() ? `/api/poll?${qs}` : "/api/poll";
   const res = await fetch(url, { credentials: "same-origin" });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     // Server geeft soms een context-afhankelijke uitleg mee (geen poll
-    // vandaag omdat het te vroeg is, weekend, etc.) — gebruik die.
+    // vandaag omdat het te vroeg is, etc.) — gebruik die.
     const err = new Error(body.message || body.error || `Fout ${res.status}`);
     err.reason = body.reason;
     throw err;
@@ -14,13 +19,13 @@ async function fetchPoll(date) {
   return res.json();
 }
 
-async function castVote(date, letter) {
+async function castVote(date, slot, letter) {
   // `letter` is een string A-Z, óf null om je stem in te trekken.
   const res = await fetch("/api/vote", {
     method: "POST",
     credentials: "same-origin",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ date, letter }),
+    body: JSON.stringify({ date, slot, letter }),
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
@@ -33,15 +38,42 @@ function renderError(root, message) {
   root.replaceChildren(el("div", { class: "error" }, message));
 }
 
-function renderPoll(root, poll) {
+function renderSlotTabs(root, poll, onSwitch) {
+  const slots = poll.available_slots || [];
+  if (slots.length < 2) return;
+  const tabs = el("div", { class: "slot-tabs", role: "tablist" });
+  for (const s of slots) {
+    const active = s === poll.slot;
+    tabs.append(
+      el(
+        "button",
+        {
+          type: "button",
+          class: `slot-tab${active ? " active" : ""}`,
+          "aria-selected": active ? "true" : "false",
+          onclick: active ? null : () => onSwitch(s),
+        },
+        SLOT_LABELS[s] || s
+      )
+    );
+  }
+  root.append(tabs);
+}
+
+function renderPoll(root, poll, onSwitch) {
   root.replaceChildren();
 
   const totalVotes = poll.reveal
     ? poll.options.reduce((s, o) => s + (o.count || 0), 0)
     : 0;
 
+  renderSlotTabs(root, poll, onSwitch);
+
+  const metaText = poll.slot_label
+    ? `${poll.slot_label} · ${formatDateNl(poll.date)}`
+    : formatDateNl(poll.date);
   root.append(
-    el("p", { class: "meta" }, formatDateNl(poll.date)),
+    el("p", { class: "meta" }, metaText),
     el("h2", { class: "question" }, poll.question)
   );
 
@@ -156,8 +188,8 @@ function renderPoll(root, poll) {
               try {
                 // Klik op je huidige stem → intrekken; anders nieuwe stem.
                 const target = poll.your_vote === opt.letter ? null : opt.letter;
-                const updated = await castVote(poll.date, target);
-                renderPoll(root, updated);
+                const updated = await castVote(poll.date, poll.slot, target);
+                renderPoll(root, updated, onSwitch);
               } catch (err) {
                 renderError(root, err.message);
               } finally {
@@ -188,12 +220,24 @@ async function main() {
   const root = document.getElementById("app");
   const params = new URLSearchParams(window.location.search);
   const date = params.get("date");
-  try {
-    const poll = await fetchPoll(date);
-    renderPoll(root, poll);
-  } catch (err) {
-    renderError(root, err.message || "Kon de poll niet laden.");
+
+  async function load(slot) {
+    // Houd de URL in sync zodat een refresh of deel-link het slot bewaart.
+    const qs = new URLSearchParams();
+    if (date) qs.set("date", date);
+    if (slot) qs.set("slot", slot);
+    const newUrl = qs.toString() ? `${location.pathname}?${qs}` : location.pathname;
+    history.replaceState(null, "", newUrl);
+
+    try {
+      const poll = await fetchPoll(date, slot);
+      renderPoll(root, poll, load);
+    } catch (err) {
+      renderError(root, err.message || "Kon de poll niet laden.");
+    }
   }
+
+  await load(params.get("slot"));
 }
 
 main();

@@ -32,11 +32,20 @@ python poll.py --date 2026-05-26   # forceer een specifieke dag
 python poll.py --no-send           # geen Slack/mail, alleen logboek + SQL
 ```
 
-## GitHub Actions
+## Twee polls per dag (slots)
 
-`.github/workflows/poll.yml` draait dagelijks om **05:30 UTC** (= 07:30 NL zomertijd / 06:30 NL wintertijd — GitHub Actions cron ondersteunt geen DST). Ochtend-ritueel: NOS en VK zijn dan nog van gisteren-middag, NRC en FD van vanochtend. `fetch_main_episode` pakt per feed de meest recente aflevering binnen een venster van 72 uur, dus alle vier zijn altijd binnen redelijke verswaarde — ook op maandag-ochtend, waar het weekend-gat van vrijdag-middag naar maandag-ochtend net binnen 72u valt.
+Er zijn twee slots per dag:
 
-Scheduled workflows draaien **alleen vanaf de default branch**, dus deze branch moet naar `main` gemerged worden voor de cron daadwerkelijk start. Handmatig testen kan vanaf elke branch via **Actions → Daily poll → Run workflow**.
+| Slot | Cron (UTC) | NL-tijd | Venster | Idee |
+| --- | --- | --- | --- | --- |
+| `morning` | `30 5 * * *` | 07:30 zomer / 06:30 winter | 72u | NOS/VK nog van gisteren-middag, NRC/FD vers. Altijd alle vier compleet (weekend-gat past binnen 72u). |
+| `afternoon` | `0 16 * * *` | 18:00 zomer / 17:00 winter | 24u | Alle vier vers van vandaag — het klassieke "wat koos de redactie vandaag". Hierop gaat de push-melding uit. |
+
+`fetch_main_episode` pakt per feed de meest recente aflevering binnen het venster van het slot. Bij minder dan 2 verse afleveringen (bv. een schrale weekend-middag) wordt er geen poll gegenereerd en geen push verstuurd.
+
+De webinterface toont standaard het nieuwste beschikbare slot van vandaag, met tabs om tussen Ochtend en Middag te wisselen. Je kunt op beide slots stemmen (verschillende afleveringen). Het archief toont een regel per (dag, slot).
+
+`.github/workflows/poll.yml` bepaalt het slot uit de cron-schedule (of uit de `slot`-input bij een handmatige run; `auto` leidt af uit het NL-uur). Scheduled workflows draaien **alleen vanaf de default branch**, dus deze branch moet naar `main` gemerged worden voor de cron daadwerkelijk start. Handmatig testen kan via **Actions → Daily poll → Run workflow** (kies een slot of `auto`).
 
 ## Webinterface op Cloudflare Pages
 
@@ -63,6 +72,8 @@ De output bevat een `database_id`. Je hebt 'm zo nodig in stap 4 om de binding i
 wrangler d1 execute podcastkiezer-db --remote --file migrations/0001_init.sql
 wrangler d1 execute podcastkiezer-db --remote --file migrations/0002_artwork.sql
 wrangler d1 execute podcastkiezer-db --remote --file migrations/0003_voter_reveals.sql
+wrangler d1 execute podcastkiezer-db --remote --file migrations/0004_push_subscriptions.sql
+wrangler d1 execute podcastkiezer-db --remote --file migrations/0005_slots.sql
 ```
 
 Bij toekomstige migrations: voer nieuwe `migrations/00NN_*.sql`-bestanden in volgorde uit.

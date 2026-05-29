@@ -3,6 +3,13 @@
 export const VOTER_COOKIE = "pk_voter_id";
 export const TZ = "Europe/Amsterdam";
 
+export const SLOTS = ["morning", "afternoon"];
+export const SLOT_LABELS = { morning: "Ochtend", afternoon: "Middag" };
+
+export function isValidSlot(s) {
+  return SLOTS.includes(s);
+}
+
 export function todayInAmsterdam() {
   // YYYY-MM-DD voor de Nederlandse kalenderdatum, ongeacht waar de Worker draait.
   const fmt = new Intl.DateTimeFormat("en-CA", {
@@ -84,13 +91,12 @@ function currentHourAmsterdam() {
 }
 
 /**
- * Geef een Nederlandse uitleg waarom een datum (nog) geen poll heeft.
- * `requestedDate` is een YYYY-MM-DD-string; `today` ook. Sinds we naar
- * een ochtend-poll zijn overgestapt vervalt het 'weekend'-onderscheid:
- * weekend-polls draaien gewoon op de meest recente aflevering per feed
- * binnen het 72u-venster.
+ * Geef een Nederlandse uitleg waarom een (datum, slot) (nog) geen poll
+ * heeft. `requestedDate` en `today` zijn YYYY-MM-DD-strings; `slot` is
+ * 'morning' of 'afternoon' (mag null zijn als er voor geen enkel slot
+ * iets bestaat).
  */
-export function noPollMessage(requestedDate, today) {
+export function noPollMessage(requestedDate, today, slot) {
   if (requestedDate > today) {
     return {
       reason: "future",
@@ -106,17 +112,22 @@ export function noPollMessage(requestedDate, today) {
   }
   // requestedDate === today
   const hour = currentHourAmsterdam();
+  if (slot === "afternoon" && hour < 17) {
+    return {
+      reason: "before_publish",
+      message: "De middag-poll verschijnt rond 17:00. Vernieuw dan de pagina.",
+    };
+  }
   if (hour < 8) {
     return {
       reason: "before_publish",
       message:
-        "De ochtend-poll wordt rond 07:30 gegenereerd. Vernieuw zo de pagina.",
+        "De ochtend-poll verschijnt rond 07:30. Vernieuw dan de pagina.",
     };
   }
   return {
     reason: "delayed",
-    message:
-      "De poll van vanochtend wordt zo gegenereerd. Vernieuw zo de pagina.",
+    message: "De poll wordt zo gegenereerd. Vernieuw zo de pagina.",
   };
 }
 
@@ -136,11 +147,31 @@ function safeJsonParse(raw, fallback) {
   }
 }
 
-export async function fetchPoll(env, date) {
-  const pollRow = await env.DB.prepare(
-    "SELECT date, created_at, question, missing FROM polls WHERE date = ?"
+/**
+ * Welke slots bestaan voor een datum, oudste→nieuwste (morning < afternoon).
+ */
+export async function availableSlots(env, date) {
+  const rows = await env.DB.prepare(
+    "SELECT slot FROM polls WHERE date = ?"
   )
     .bind(date)
+    .all();
+  const present = new Set((rows.results || []).map((r) => r.slot));
+  return SLOTS.filter((s) => present.has(s));
+}
+
+/** Nieuwste beschikbare slot voor een datum, of null als er niets is. */
+export function newestSlot(slots) {
+  if (slots.includes("afternoon")) return "afternoon";
+  if (slots.includes("morning")) return "morning";
+  return null;
+}
+
+export async function fetchPoll(env, date, slot) {
+  const pollRow = await env.DB.prepare(
+    "SELECT date, slot, created_at, question, missing FROM polls WHERE date = ? AND slot = ?"
+  )
+    .bind(date, slot)
     .first();
   if (!pollRow) return null;
 
@@ -151,17 +182,18 @@ export async function fetchPoll(env, date) {
   LEFT JOIN (
             SELECT letter, COUNT(*) AS cnt
               FROM votes
-             WHERE poll_date = ?1
+             WHERE poll_date = ?1 AND slot = ?2
           GROUP BY letter
        ) vc ON vc.letter = po.letter
-      WHERE po.poll_date = ?1
+      WHERE po.poll_date = ?1 AND po.slot = ?2
    ORDER BY po.letter`
   )
-    .bind(date)
+    .bind(date, slot)
     .all();
 
   return {
     date: pollRow.date,
+    slot: pollRow.slot,
     created_at: pollRow.created_at,
     question: pollRow.question,
     missing: safeJsonParse(pollRow.missing, []),
@@ -177,14 +209,18 @@ export async function fetchPoll(env, date) {
   };
 }
 
-export async function getVoterStatus(env, date, voterId) {
+export async function getVoterStatus(env, date, slot, voterId) {
   if (!voterId) return { vote: null, revealed: false };
   const [voteRow, revealRow] = await Promise.all([
-    env.DB.prepare("SELECT letter FROM votes WHERE poll_date = ? AND voter_id = ?")
-      .bind(date, voterId)
+    env.DB.prepare(
+      "SELECT letter FROM votes WHERE poll_date = ? AND slot = ? AND voter_id = ?"
+    )
+      .bind(date, slot, voterId)
       .first(),
-    env.DB.prepare("SELECT 1 AS x FROM voter_reveals WHERE poll_date = ? AND voter_id = ?")
-      .bind(date, voterId)
+    env.DB.prepare(
+      "SELECT 1 AS x FROM voter_reveals WHERE poll_date = ? AND slot = ? AND voter_id = ?"
+    )
+      .bind(date, slot, voterId)
       .first(),
   ]);
   return {
@@ -199,10 +235,13 @@ export async function getVoterStatus(env, date, voterId) {
  * iemand zijn stem heeft ingetrokken (ze hebben ze al gezien).
  * Past poll = altijd alles tonen.
  */
-export function shapePoll(poll, { isToday, revealed, yourVote }) {
+export function shapePoll(poll, { isToday, revealed, yourVote, availableSlots }) {
   const hideAnswers = isToday && !revealed;
   return {
     date: poll.date,
+    slot: poll.slot,
+    slot_label: SLOT_LABELS[poll.slot] || poll.slot,
+    available_slots: availableSlots || [poll.slot],
     created_at: poll.created_at,
     question: poll.question,
     missing: poll.missing,

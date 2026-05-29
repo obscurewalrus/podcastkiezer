@@ -32,10 +32,14 @@ async function main() {
           p.winner.count === 1 ? "stem" : "stemmen"
         }`;
       }
+      const href = `/?date=${encodeURIComponent(p.date)}&slot=${encodeURIComponent(p.slot)}`;
+      const dateLabel = p.slot_label
+        ? `${formatDateNl(p.date)} · ${p.slot_label}`
+        : formatDateNl(p.date);
       list.append(
         el("li", {}, [
-          el("a", { href: `/?date=${encodeURIComponent(p.date)}` }, [
-            el("span", { class: "date" }, formatDateNl(p.date)),
+          el("a", { href }, [
+            el("span", { class: "date" }, dateLabel),
             el("span", { class: "winner" }, summary),
           ]),
         ])

@@ -14,6 +14,12 @@ WHATSAPP_OPTION_MAX = 100  # WhatsApp poll option character limit
 WHATSAPP_QUESTION_MAX = 255
 POLL_QUESTION = "Welke podcast zou jij vandaag luisteren?"
 
+SLOT_LABELS = {"morning": "Ochtend", "afternoon": "Middag"}
+
+
+def slot_label(slot: str) -> str:
+    return SLOT_LABELS.get(slot, slot)
+
 DUTCH_MONTHS = {
     1: "januari", 2: "februari", 3: "maart", 4: "april",
     5: "mei", 6: "juni", 7: "juli", 8: "augustus",
@@ -32,9 +38,11 @@ def _truncate(s: str, n: int) -> str:
     return s[: n - 1].rstrip() + "…"
 
 
-def render_whatsapp(today: date, shuffled: list[Episode], missing: list[str]) -> str:
+def render_whatsapp(
+    today: date, slot: str, shuffled: list[Episode], missing: list[str]
+) -> str:
     lines = [
-        f"🎧 Podcastdilemma — {format_date_nl(today)}",
+        f"🎧 Podcastdilemma — {slot_label(slot)}, {format_date_nl(today)}",
         "",
         "Plak dit als WhatsApp-poll.",
         "",
@@ -71,15 +79,17 @@ def _sql_literal(value) -> str:
     return "'" + str(value).replace("'", "''") + "'"
 
 
-def render_d1_sql(today: date, shuffled: list[Episode], missing: list[str]) -> str:
-    """SQL voor D1 om deze poll te registreren.
+def render_d1_sql(
+    today: date, slot: str, shuffled: list[Episode], missing: list[str]
+) -> str:
+    """SQL voor D1 om deze poll (date + slot) te registreren.
 
-    Zelfhelend: als de huidige poll-rij voor `today` als incompleet
-    gemarkeerd staat (`missing != '[]'`, bijv. een eerdere run die te
-    vroeg liep), wissen we eerst alle gerelateerde rijen voor die dag
-    en bouwen we opnieuw op. Dat herhusselt ook de letter-volgorde,
-    dus eventuele stemmen op een partial-poll horen mee gewist te
-    worden — anders wijzen die naar verkeerde bronnen.
+    Zelfhelend: als de huidige poll-rij voor (`today`, `slot`) als
+    incompleet gemarkeerd staat (`missing != '[]'`, bijv. een eerdere
+    run die te vroeg liep), wissen we eerst alle gerelateerde rijen
+    voor dat slot en bouwen we opnieuw op. Dat herhusselt ook de
+    letter-volgorde, dus eventuele stemmen op een partial-poll horen
+    mee gewist te worden — anders wijzen die naar verkeerde bronnen.
 
     Als de bestaande poll compleet was (`missing = '[]'`) zijn alle
     statements no-ops dankzij de WHERE-clauses en `OR IGNORE`.
@@ -87,22 +97,24 @@ def render_d1_sql(today: date, shuffled: list[Episode], missing: list[str]) -> s
     created_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     missing_json = json.dumps(missing, ensure_ascii=False)
     date_lit = _sql_literal(today.isoformat())
+    slot_lit = _sql_literal(slot)
 
     # Voorwaarde voor opruimen — losgetrokken zodat we 'm in elke DELETE
     # kunnen hergebruiken. Belangrijk: child-rijen vóór de polls-rij
     # wissen, anders is de EXISTS-check niet meer waar.
     incomplete_clause = (
         f"EXISTS (SELECT 1 FROM polls "
-        f"WHERE date = {date_lit} AND missing != '[]')"
+        f"WHERE date = {date_lit} AND slot = {slot_lit} AND missing != '[]')"
     )
 
     stmts = [
-        f"DELETE FROM votes WHERE poll_date = {date_lit} AND {incomplete_clause};",
-        f"DELETE FROM voter_reveals WHERE poll_date = {date_lit} AND {incomplete_clause};",
-        f"DELETE FROM poll_options WHERE poll_date = {date_lit} AND {incomplete_clause};",
-        f"DELETE FROM polls WHERE date = {date_lit} AND missing != '[]';",
-        "INSERT OR IGNORE INTO polls (date, created_at, question, missing) VALUES ("
+        f"DELETE FROM votes WHERE poll_date = {date_lit} AND slot = {slot_lit} AND {incomplete_clause};",
+        f"DELETE FROM voter_reveals WHERE poll_date = {date_lit} AND slot = {slot_lit} AND {incomplete_clause};",
+        f"DELETE FROM poll_options WHERE poll_date = {date_lit} AND slot = {slot_lit} AND {incomplete_clause};",
+        f"DELETE FROM polls WHERE date = {date_lit} AND slot = {slot_lit} AND missing != '[]';",
+        "INSERT OR IGNORE INTO polls (date, slot, created_at, question, missing) VALUES ("
         f"{date_lit}, "
+        f"{slot_lit}, "
         f"{_sql_literal(created_at)}, "
         f"{_sql_literal(POLL_QUESTION)}, "
         f"{_sql_literal(missing_json)});",
@@ -110,8 +122,9 @@ def render_d1_sql(today: date, shuffled: list[Episode], missing: list[str]) -> s
     for i, ep in enumerate(shuffled):
         stmts.append(
             "INSERT OR IGNORE INTO poll_options "
-            "(poll_date, letter, source, title, link, duration_sec, artwork_url) VALUES ("
+            "(poll_date, slot, letter, source, title, link, duration_sec, artwork_url) VALUES ("
             f"{date_lit}, "
+            f"{slot_lit}, "
             f"{_sql_literal(LETTERS[i])}, "
             f"{_sql_literal(ep.source)}, "
             f"{_sql_literal(ep.title)}, "
@@ -123,9 +136,11 @@ def render_d1_sql(today: date, shuffled: list[Episode], missing: list[str]) -> s
     return "\n".join(stmts) + "\n"
 
 
-def render_markdown_log(today: date, poll_text: str, solution_text: str) -> str:
+def render_markdown_log(
+    today: date, slot: str, poll_text: str, solution_text: str
+) -> str:
     return (
-        f"# Podcastdilemma — {format_date_nl(today)}\n\n"
+        f"# Podcastdilemma — {slot_label(slot)}, {format_date_nl(today)}\n\n"
         f"## WhatsApp-poll\n\n"
         f"```\n{poll_text}\n```\n\n"
         f"## Oplossing\n\n"
@@ -133,10 +148,12 @@ def render_markdown_log(today: date, poll_text: str, solution_text: str) -> str:
     )
 
 
-def send_slack(webhook_url: str, today: date, poll_text: str, solution_text: str) -> None:
+def send_slack(
+    webhook_url: str, today: date, slot: str, poll_text: str, solution_text: str
+) -> None:
     payload = {
         "text": (
-            f"*Podcastdilemma — {format_date_nl(today)}*\n"
+            f"*Podcastdilemma — {slot_label(slot)}, {format_date_nl(today)}*\n"
             f"```\n{poll_text}\n```\n"
             f":warning: *Oplossing — niet lezen tot iedereen heeft gestemd:*\n"
             f"```\n{solution_text}\n```"
@@ -154,7 +171,9 @@ def send_slack(webhook_url: str, today: date, poll_text: str, solution_text: str
             raise RuntimeError(f"Slack webhook returned {resp.status}: {body}")
 
 
-def send_mail(mail_config: dict, today: date, poll_text: str, solution_text: str) -> None:
+def send_mail(
+    mail_config: dict, today: date, slot: str, poll_text: str, solution_text: str
+) -> None:
     host = os.environ["SMTP_HOST"]
     port = int(os.environ.get("SMTP_PORT", "587"))
     user = os.environ.get("SMTP_USER")
@@ -169,7 +188,7 @@ def send_mail(mail_config: dict, today: date, poll_text: str, solution_text: str
     prefix = mail_config.get("subject_prefix", "[Podcastdilemma]")
 
     msg = EmailMessage()
-    msg["Subject"] = f"{prefix} {format_date_nl(today)}"
+    msg["Subject"] = f"{prefix} {slot_label(slot)} — {format_date_nl(today)}"
     msg["From"] = sender
     msg["To"] = ", ".join(recipients)
     msg.set_content(

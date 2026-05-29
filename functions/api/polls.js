@@ -1,51 +1,57 @@
-import { json, todayInAmsterdam } from "../_shared.js";
+import { json, SLOT_LABELS, todayInAmsterdam } from "../_shared.js";
 
-const ARCHIVE_LIMIT = 60;
+// Twee slots per dag → ruimer limiet om ~60 dagen historie te tonen.
+const ARCHIVE_LIMIT = 120;
 
 /**
- * Lijst van afgelopen polls met opties en tellingen, voor het archief.
- * Vandaag wordt overgeslagen — die zit op de hoofdpagina.
+ * Lijst van afgelopen polls (per date+slot) met opties en tellingen,
+ * voor het archief. Vandaag wordt overgeslagen — die zit op de
+ * hoofdpagina.
  */
 export async function onRequestGet({ env }) {
   const today = todayInAmsterdam();
 
-  // Eerst de set datums begrenzen, daarna joinen — anders snijdt LIMIT
-  // poll_options-rijen weg en krijg je een poll terug met te weinig opties.
+  // Eerst de set (date, slot) begrenzen, daarna joinen — anders snijdt
+  // LIMIT poll_options-rijen weg en krijg je een poll met te weinig opties.
+  // Binnen een dag chronologisch: morning vóór afternoon.
   const result = await env.DB.prepare(
     `WITH recent AS (
-       SELECT date, question
+       SELECT date, slot, question
          FROM polls
         WHERE date < ?1
-     ORDER BY date DESC
+     ORDER BY date DESC, CASE slot WHEN 'morning' THEN 0 ELSE 1 END
         LIMIT ?2
      )
-     SELECT r.date, r.question,
+     SELECT r.date, r.slot, r.question,
             po.letter, po.source, po.title, po.link, po.duration_sec, po.artwork_url,
             COALESCE(vc.cnt, 0) AS count
        FROM recent r
-       JOIN poll_options po ON po.poll_date = r.date
+       JOIN poll_options po ON po.poll_date = r.date AND po.slot = r.slot
   LEFT JOIN (
-            SELECT poll_date, letter, COUNT(*) AS cnt
+            SELECT poll_date, slot, letter, COUNT(*) AS cnt
               FROM votes
              WHERE poll_date < ?1
-          GROUP BY poll_date, letter
-       ) vc ON vc.poll_date = r.date AND vc.letter = po.letter
-   ORDER BY r.date DESC, po.letter`
+          GROUP BY poll_date, slot, letter
+       ) vc ON vc.poll_date = r.date AND vc.slot = r.slot AND vc.letter = po.letter
+   ORDER BY r.date DESC, CASE r.slot WHEN 'morning' THEN 0 ELSE 1 END, po.letter`
   )
     .bind(today, ARCHIVE_LIMIT)
     .all();
 
-  const byDate = new Map();
+  const byKey = new Map();
   for (const row of result.results || []) {
-    let entry = byDate.get(row.date);
+    const key = `${row.date}::${row.slot}`;
+    let entry = byKey.get(key);
     if (!entry) {
       entry = {
         date: row.date,
+        slot: row.slot,
+        slot_label: SLOT_LABELS[row.slot] || row.slot,
         question: row.question,
         total_votes: 0,
         options: [],
       };
-      byDate.set(row.date, entry);
+      byKey.set(key, entry);
     }
     const count = Number(row.count) || 0;
     entry.total_votes += count;
@@ -60,7 +66,7 @@ export async function onRequestGet({ env }) {
     });
   }
 
-  const polls = Array.from(byDate.values()).map((p) => ({
+  const polls = Array.from(byKey.values()).map((p) => ({
     ...p,
     winner: pickWinner(p.options),
   }));
