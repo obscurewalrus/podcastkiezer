@@ -1,0 +1,60 @@
+name: Run D1 migration
+
+# Handmatig vanuit de browser triggerbaar (Actions tab → Run migration →
+# Run workflow). Handig als de D1-console in de Cloudflare-dashboard
+# moeite heeft met multi-statement SQL.
+
+on:
+  workflow_dispatch:
+    inputs:
+      file:
+        description: "Pad naar het SQL-bestand in de repo."
+        required: true
+        default: "migrations/0005_slots.sql"
+
+permissions:
+  contents: read
+
+env:
+  WRANGLER_VERSION: "4"
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    env:
+      HAS_CF: ${{ secrets.CLOUDFLARE_API_TOKEN != '' && secrets.CLOUDFLARE_ACCOUNT_ID != '' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Sanity-check inputs
+        run: |
+          if [ "$HAS_CF" != "true" ]; then
+            echo "::error::CLOUDFLARE_API_TOKEN of CLOUDFLARE_ACCOUNT_ID ontbreekt in repo-secrets."
+            exit 1
+          fi
+          if [ ! -f "${{ github.event.inputs.file }}" ]; then
+            echo "::error::Bestand niet gevonden: ${{ github.event.inputs.file }}"
+            exit 1
+          fi
+          echo "Migreer met: ${{ github.event.inputs.file }}"
+
+      - name: Apply migration to D1
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          D1_DATABASE_NAME: ${{ secrets.D1_DATABASE_NAME }}
+          FILE: ${{ github.event.inputs.file }}
+        # Draai vanuit een lege map zodat wrangler de wrangler.toml van de
+        # repo (alleen Pages-config) niet probeert te valideren.
+        run: |
+          sql_abs="$(pwd)/$FILE"
+          db_name="${D1_DATABASE_NAME:-podcastkiezer-db}"
+          tmp_cwd="$(mktemp -d)"
+          cd "$tmp_cwd"
+          npx --yes "wrangler@${WRANGLER_VERSION}" d1 execute "$db_name" --remote --file "$sql_abs"
