@@ -135,8 +135,12 @@ def fetch_main_episode(
     if not candidates:
         return None
 
-    # Sort: longest first; on ties, earliest pub first.
-    candidates.sort(key=lambda c: (-c[0], c[1]))
+    # Sorteer: nieuwste dag eerst, dan langste binnen die dag, dan
+    # vroegste publicatietijd. Eerst-dag voorkomt dat een lange
+    # long-read van gisteren de korte daily van vandaag verslaat;
+    # daarna fungeert 'langste binnen dezelfde dag' nog als filter
+    # voor trailers/oproepjes.
+    candidates.sort(key=lambda c: (-c[1].toordinal(), -c[0], c[1]))
     duration, pub_local, entry = candidates[0]
     return Episode(
         source=source,
