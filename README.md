@@ -34,7 +34,7 @@ python poll.py --no-send           # geen Slack/mail, alleen logboek + SQL
 
 ## GitHub Actions
 
-`.github/workflows/poll.yml` draait dagelijks om **16:00 UTC** (= 17:00 wintertijd / 18:00 zomertijd in NL — GitHub Actions cron ondersteunt geen DST, dus we kiezen voor "altijd ná Elke Dag (VK) om 16:30 NL" ten koste van een uur later in de zomer). Aanpassen kan via de `cron`-regel.
+`.github/workflows/poll.yml` draait dagelijks om **05:30 UTC** (= 07:30 NL zomertijd / 06:30 NL wintertijd — GitHub Actions cron ondersteunt geen DST). Ochtend-ritueel: NOS en VK zijn dan nog van gisteren-middag, NRC en FD van vanochtend. `fetch_main_episode` pakt per feed de meest recente aflevering binnen een venster van 72 uur, dus alle vier zijn altijd binnen redelijke verswaarde — ook op maandag-ochtend, waar het weekend-gat van vrijdag-middag naar maandag-ochtend net binnen 72u valt.
 
 Scheduled workflows draaien **alleen vanaf de default branch**, dus deze branch moet naar `main` gemerged worden voor de cron daadwerkelijk start. Handmatig testen kan vanaf elke branch via **Actions → Daily poll → Run workflow**.
 

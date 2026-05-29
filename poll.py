@@ -6,7 +6,7 @@ import argparse
 import os
 import random
 import sys
-from datetime import datetime
+from datetime import datetime, time
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -43,9 +43,13 @@ def main(argv: list[str] | None = None) -> int:
     config = yaml.safe_load((ROOT / "config.yaml").read_text(encoding="utf-8"))
 
     if args.date:
-        today = datetime.strptime(args.date, "%Y-%m-%d").date()
+        target_date = datetime.strptime(args.date, "%Y-%m-%d").date()
+        # Simuleer een normale ochtend-run: 07:30 NL op die datum.
+        now = datetime.combine(target_date, time(7, 30), tzinfo=TZ)
+        today = target_date
     else:
-        today = datetime.now(TZ).date()
+        now = datetime.now(TZ)
+        today = now.date()
 
     episodes: list[Episode] = []
     missing: list[str] = []
@@ -55,7 +59,7 @@ def main(argv: list[str] | None = None) -> int:
             ep = fetch_main_episode(
                 name,
                 feed["url"],
-                today,
+                now,
                 exclude_title=feed.get("exclude_title"),
             )
         except Exception as exc:

@@ -74,12 +74,6 @@ export function ensureVoterId(request) {
   return { voterId, extraHeaders };
 }
 
-function dayOfWeekUtc(isoDate) {
-  // 0 = zondag, 6 = zaterdag. Middag-UTC zodat DST de dag niet kantelt.
-  const d = new Date(isoDate + "T12:00:00Z");
-  return d.getUTCDay();
-}
-
 function currentHourAmsterdam() {
   const s = new Intl.DateTimeFormat("en-GB", {
     timeZone: TZ,
@@ -91,7 +85,10 @@ function currentHourAmsterdam() {
 
 /**
  * Geef een Nederlandse uitleg waarom een datum (nog) geen poll heeft.
- * `requestedDate` is een YYYY-MM-DD-string; `today` ook.
+ * `requestedDate` is een YYYY-MM-DD-string; `today` ook. Sinds we naar
+ * een ochtend-poll zijn overgestapt vervalt het 'weekend'-onderscheid:
+ * weekend-polls draaien gewoon op de meest recente aflevering per feed
+ * binnen het 72u-venster.
  */
 export function noPollMessage(requestedDate, today) {
   if (requestedDate > today) {
@@ -101,48 +98,25 @@ export function noPollMessage(requestedDate, today) {
     };
   }
   if (requestedDate < today) {
-    const dow = dayOfWeekUtc(requestedDate);
-    if (dow === 0 || dow === 6) {
-      return {
-        reason: "past_weekend",
-        message:
-          "Op deze dag was het weekend — niet alle dagelijkse podcasts publiceren dan.",
-      };
-    }
     return {
       reason: "past_missing",
       message:
-        "Op deze dag is geen poll gegenereerd — misschien een feestdag of een storing in de feeds.",
+        "Op deze dag is geen poll gegenereerd — mogelijk een feestdag of een storing in de feeds.",
     };
   }
   // requestedDate === today
-  const dow = dayOfWeekUtc(today);
-  if (dow === 0 || dow === 6) {
-    return {
-      reason: "weekend",
-      message:
-        "Het is weekend — niet alle dagelijkse podcasts publiceren vandaag. Kom maandag terug voor een nieuwe poll.",
-    };
-  }
   const hour = currentHourAmsterdam();
-  if (hour < 5) {
-    return {
-      reason: "too_early",
-      message:
-        "De eerste podcasts (NRC Vandaag, Dagkoersen) verschijnen rond 05:00. Kom dan terug.",
-    };
-  }
-  if (hour < 18) {
+  if (hour < 8) {
     return {
       reason: "before_publish",
       message:
-        "Niet alle dagelijkse podcasts zijn vandaag al gepubliceerd — Elke Dag (VK) komt pas rond 16:30. De poll verschijnt in de loop van de namiddag.",
+        "De ochtend-poll wordt rond 07:30 gegenereerd. Vernieuw zo de pagina.",
     };
   }
   return {
     reason: "delayed",
     message:
-      "De poll van vandaag wordt zo gegenereerd. Vernieuw zo de pagina.",
+      "De poll van vanochtend wordt zo gegenereerd. Vernieuw zo de pagina.",
   };
 }
 

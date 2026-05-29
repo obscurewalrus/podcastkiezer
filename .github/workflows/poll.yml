@@ -2,12 +2,12 @@ name: Daily poll
 
 on:
   schedule:
-    # 16:00 UTC = 17:00 winter (CET) / 18:00 zomer (CEST) — altijd ná
-    # Elke Dag (VK) die rond 16:30 NL publiceert. GitHub Actions cron
-    # is altijd UTC en kent geen DST, dus je kunt niet beide seizoenen
-    # tegelijk op precies 17:00 NL prikken; deze keuze is altijd
-    # compleet ten koste van een uur later in de zomer.
-    - cron: "0 16 * * *"
+    # 05:30 UTC = 07:30 NL zomer (CEST) / 06:30 NL winter (CET) —
+    # ochtend-ritueel. NOS en VK zijn dan nog van gisteren-middag,
+    # NRC en FD van vanochtend; fetch_main_episode pakt per feed de
+    # meest recente aflevering binnen een 72u-venster, dus alle vier
+    # zijn altijd ergens binnen redelijke verswaarde.
+    - cron: "30 5 * * *"
   workflow_dispatch: {}
 
 permissions:

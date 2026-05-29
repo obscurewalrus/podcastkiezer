@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 import feedparser
@@ -95,28 +95,37 @@ def _artwork_url(parsed_feed, entry) -> str | None:
 def fetch_main_episode(
     source: str,
     url: str,
-    today: date,
+    now: datetime,
     *,
+    max_age_hours: float = 72,
     exclude_title: str | None = None,
 ) -> Episode | None:
-    """Return the main episode of `today` for `source`, or None if absent.
+    """Return de hoofdaflevering die niet ouder is dan `max_age_hours`.
 
-    Strategy: of de entries met pubDate op `today` in NL-tijd, pak de
-    langste (itunes:duration). `exclude_title` is een optionele regex
-    (`re.search`) die titels filtert vóór de selectie — handig voor
-    feeds die docu-series in dezelfde stroom publiceren (bv. FD).
+    Eerder filterden we op pubDate == vandaag; sinds we naar een
+    ochtend-ritueel zijn overgestapt nemen we de meest recente
+    aflevering binnen een venster. Bij een run om 07:30 NL is NOS
+    De Dag (gisteren 14:30) ongeveer 17u oud, en het weekend-gat
+    van vrijdag-middag naar maandag-ochtend komt op ~65u — beide
+    ruim binnen de standaard cap.
+
+    Selectie binnen het venster volgt nog steeds 'langste eerst, op
+    gelijke duur de vroegste' zodat korte trailers en oproepjes
+    wegvallen. `exclude_title` is een optionele regex (re.search)
+    voor feeds met docu-series in dezelfde stroom.
     """
     exclude_re = re.compile(exclude_title) if exclude_title else None
     parsed = feedparser.parse(url)
     candidates: list[tuple[int, datetime, object]] = []
+    cutoff = (now - timedelta(hours=max_age_hours)).astimezone(UTC)
     for entry in parsed.entries:
         published_parsed = getattr(entry, "published_parsed", None)
         if published_parsed is None:
             continue
         pub_utc = datetime(*published_parsed[:6], tzinfo=UTC)
-        pub_local = pub_utc.astimezone(TZ)
-        if pub_local.date() != today:
+        if pub_utc < cutoff:
             continue
+        pub_local = pub_utc.astimezone(TZ)
         title = (entry.title or "").strip()
         if exclude_re and exclude_re.search(title):
             continue
