@@ -29,7 +29,7 @@ def draw_icon(size: int, radius_ratio: float = 0.22) -> Image.Image:
     d.rounded_rectangle((0, 0, size - 1, size - 1), radius=r, fill=ACCENT)
 
     # Oorschelpen — eerst posities bepalen want de boog moet daar
-    # precies bovenop aansluiten.
+    # precies in eindigen (niet erop, anders ziet 'ie er onnatuurlijk uit).
     band_x_left = size * 0.22   # centrum van de linker schelp
     band_x_right = size * 0.78
     cup_w = size * 0.22
@@ -38,12 +38,13 @@ def draw_icon(size: int, radius_ratio: float = 0.22) -> Image.Image:
     cup_y_bot = cup_y_top + cup_h
     cup_r = int(cup_w * 0.42)
 
-    # Headband: bovenste helft van een ellips, zodat de booguiteinden
-    # precies op (band_x_left, cup_y_top) en (band_x_right, cup_y_top)
-    # uitkomen. Voor PIL.arc met start=180/end=360 ligt het 'einde'
-    # van de boog op (y0 + y1) / 2 — daarom rekenen we y1 zo terug.
-    band_apex_y = size * 0.18                              # hoog en
-    band_y_bottom = 2 * cup_y_top - band_apex_y            # symmetrisch
+    # Headband: bovenste helft van een ellips. Booguiteinden liggen
+    # iets ínside de schelp (6% van de icon-hoogte onder cup_y_top),
+    # zodat ze, nadat de schelp er bovenop wordt getekend, eronder
+    # 'verdwijnen' — net als bij een echte koptelefoon.
+    band_apex_y = size * 0.18
+    band_end_y = cup_y_top + size * 0.06
+    band_y_bottom = 2 * band_end_y - band_apex_y
     band_width = max(int(size * 0.085), 2)
     d.arc(
         (band_x_left, band_apex_y, band_x_right, band_y_bottom),
@@ -73,11 +74,12 @@ def write_svg(path: Path) -> None:
     """Vector-versie van dezelfde tekening (verhoudingen identiek aan
     de raster-versie zodat manifest-icoon en favicon overeenkomen)."""
     # Coordinates op 512×512 viewBox, dezelfde ratios als draw_icon().
-    # Bandboog: van (113, 236) naar (399, 236), apex bij y ≈ 92
-    # → straal 143 (exacte semicircel).
+    # Boog: van (113, 266) naar (399, 266), apex bij y ≈ 92. De schelpen
+    # worden ná de boog getekend zodat de boog-uiteinden 'verdwijnen'
+    # in de schelp — net zoals bij een echte koptelefoon.
     svg = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <rect width="512" height="512" rx="113" ry="113" fill="#b9302a"/>
-  <path d="M 113 236 A 143 143 0 0 1 399 236"
+  <path d="M 113 266 A 143 174 0 0 1 399 266"
         stroke="#ffffff" stroke-width="44" fill="none" stroke-linecap="round"/>
   <rect x="56" y="236" width="113" height="154" rx="47" fill="#ffffff"/>
   <rect x="343" y="236" width="113" height="154" rx="47" fill="#ffffff"/>
