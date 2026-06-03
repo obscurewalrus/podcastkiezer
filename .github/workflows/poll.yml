@@ -106,9 +106,8 @@ jobs:
           npx --yes "wrangler@${WRANGLER_VERSION}" d1 execute "$db_name" --remote --file "$sql_abs"
 
       - name: Broadcast push notifications
-        # Alleen 's middags pushen — één melding per dag. De ochtend-poll
-        # leeft passief op de site.
-        if: env.HAS_CF == 'true' && env.HAS_PUSH == 'true' && env.SLOT == 'afternoon'
+        # Pusht voor beide slots zodat de timing per slot te volgen is.
+        if: env.HAS_CF == 'true' && env.HAS_PUSH == 'true'
         env:
           PUSH_BROADCAST_URL: ${{ secrets.PUSH_BROADCAST_URL }}
           PUSH_BROADCAST_SECRET: ${{ secrets.PUSH_BROADCAST_SECRET }}

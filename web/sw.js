@@ -46,16 +46,43 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("push", (event) => {
-  // We sturen payload-less push (geen encryptie nodig); de melding zelf
-  // is voor iedereen dezelfde tekst.
+  // Payload-less push: we halen na ontvangst /api/poll op om het juiste
+  // slot-label in de notificatie te zetten. Met een korte timeout en
+  // fallback op de generieke tekst, zodat een trage of falende fetch
+  // de melding niet tegenhoudt.
   event.waitUntil(
-    self.registration.showNotification("Podcastdilemma", {
-      body: "Een nieuwe poll staat klaar — kom stemmen!",
-      icon: "/icons/icon-192.png",
-      badge: "/icons/icon-192.png",
-      tag: "podcastdilemma-daily", // overschrijft eerdere meldingen
-      data: { url: "/" },
-    })
+    (async () => {
+      let slot = null;
+      let slotLabel = null;
+      try {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 2000);
+        const res = await fetch("/api/poll", { signal: controller.signal });
+        clearTimeout(timer);
+        if (res.ok) {
+          const poll = await res.json();
+          slot = poll.slot || null;
+          slotLabel = poll.slot_label || null;
+        }
+      } catch {
+        // val terug op standaard tekst
+      }
+      const body = slotLabel
+        ? `${slotLabel}-poll staat klaar — kom stemmen!`
+        : "Een nieuwe poll staat klaar — kom stemmen!";
+      // Slot-specifieke tag zodat ochtend en middag elkaar niet
+      // overschrijven (= twee separate notificaties).
+      const tag = slot
+        ? `podcastdilemma-${slot}`
+        : "podcastdilemma-daily";
+      await self.registration.showNotification("Podcastdilemma", {
+        body,
+        icon: "/icons/icon-192.png",
+        badge: "/icons/icon-192.png",
+        tag,
+        data: { url: "/" },
+      });
+    })()
   );
 });
 
