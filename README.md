@@ -36,10 +36,12 @@ python poll.py --no-send           # geen Slack/mail, alleen logboek + SQL
 
 Er zijn twee slots per dag:
 
-| Slot | Cron (UTC) | NL-tijd | Venster | Idee |
+| Slot | Cron (UTC) | NL-tijd, doel | Venster | Idee |
 | --- | --- | --- | --- | --- |
-| `morning` | `30 5 * * *` | 07:30 zomer / 06:30 winter | 72u | NOS/VK nog van gisteren-middag, NRC/FD vers. Altijd alle vier compleet (weekend-gat past binnen 72u). |
-| `afternoon` | `0 16 * * *` | 18:00 zomer / 17:00 winter | 24u | Alle vier vers van vandaag — het klassieke "wat koos de redactie vandaag". Hierop gaat de push-melding uit. |
+| `morning` | `17 6 * * *` | 08:30 zomer / 07:30 winter | 72u | NOS/VK nog van gisteren-middag, NRC/FD vers. Altijd alle vier compleet (weekend-gat past binnen 72u). |
+| `afternoon` | `43 15 * * *` | 18:00 zomer / 17:00 winter | 24u | Alle vier vers van vandaag — het klassieke "wat koos de redactie vandaag". Hierop gaat de push-melding uit. |
+
+De cron is gepland op offbeat minuten ~15 minuten vóór het gewenste tijdstip; dat absorbeert de paar-minuten-vertraging die GitHub Actions standaard heeft. Bij ernstige GH-vertraging (>30 min, kan tijdens piekuren) landt een poll alsnog later — dat is een fundamentele beperking van GH Actions scheduled workflows. Voor minuut-precieze timing zou je een Cloudflare Worker met Cron Trigger willen die de workflow dispatcht.
 
 `fetch_main_episode` pakt per feed de meest recente aflevering binnen het venster van het slot. Bij minder dan 2 verse afleveringen (bv. een schrale weekend-middag) wordt er geen poll gegenereerd en geen push verstuurd.
 

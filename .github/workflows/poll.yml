@@ -2,14 +2,22 @@ name: Daily poll
 
 on:
   schedule:
-    # Twee slots per dag (GitHub Actions cron is UTC, kent geen DST):
-    #  - morning  : 05:30 UTC = 07:30 NL zomer / 06:30 winter.
-    #               72u-venster: NOS/VK nog van gisteren-middag, NRC/FD vers.
-    #  - afternoon: 16:00 UTC = 18:00 NL zomer / 17:00 winter.
-    #               24u-venster: alle vier vers van vandaag. Push gaat
-    #               alleen voor dit slot uit.
-    - cron: "30 5 * * *"
-    - cron: "0 16 * * *"
+    # GitHub Actions scheduled workflows zijn 'best effort' — vooral rond
+    # hele uren worden ze vertraagd door piekbelasting. Daarom:
+    #  - offbeat minuten (niet :00 of :30)
+    #  - ~15 minuten vóór het gewenste publicatie-tijdstip gepland, om
+    #    de gebruikelijke paar-minuten-vertraging te absorberen.
+    #
+    #  morning   : 06:17 UTC ≈ 08:17 NL zomer (doel 08:30) / 07:17 winter.
+    #              72u-venster: NOS/VK nog van gisteren-middag.
+    #  afternoon : 15:43 UTC ≈ 17:43 NL zomer (doel 18:00) / 16:43 winter.
+    #              24u-venster: alle vier vers van vandaag. Push gaat
+    #              alleen voor dit slot uit.
+    #
+    # Bij ernstige GH-vertraging (>30 min, soms gebeurt) landen polls
+    # toch later; daar valt met scheduled GH Actions niets aan te doen.
+    - cron: "17 6 * * *"
+    - cron: "43 15 * * *"
   workflow_dispatch:
     inputs:
       slot:
@@ -41,8 +49,8 @@ jobs:
           slot="${{ github.event.inputs.slot }}"
           if [ -z "$slot" ] || [ "$slot" = "auto" ]; then
             case "${{ github.event.schedule }}" in
-              "30 5 * * *") slot="morning" ;;
-              "0 16 * * *") slot="afternoon" ;;
+              "17 6 * * *") slot="morning" ;;
+              "43 15 * * *") slot="afternoon" ;;
               *)
                 hour=$(TZ=Europe/Amsterdam date +%H)
                 if [ "$hour" -lt 12 ]; then slot="morning"; else slot="afternoon"; fi
