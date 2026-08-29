@@ -11,17 +11,19 @@ Vraag:
 Welke podcast zou jij vandaag luisteren?
 
 Opties:
-A) De gletsjer, de vloedgolf, de ramp
-B) De kamer van Klok: Het is altijd tijd voor revolutie (met Abel van Gijlswijk op Lowlands)
-C) Iran-oorlog kent na zes maanden niet alleen verliezers
-D) De nieuwe stikstofstrijd verscheurt de boeren onderling
+A) Wie stopt massa-zaaddonor Simon?
+B) Toegevoegde Waarde: Hebben we ons vergist in China? En worden we beter van een 25-urige werkweek?
+C) Wat gaat er verloren als het nachtleven verdwijnt?
+
+(Geen aflevering vandaag: Elke Dag (Volkskrant))
 ```
 
 ## Oplossing
 
 ```
-A) De Dag (NOS): De gletsjer, de vloedgolf, de ramp — https://podcast.npo.nl/file/de-dag/144894/de-gletsjer-de-vloedgolf-de-ramp.mp3?awCollectionid=feed-123-de-dag&awEpisodeid=feed-123-de-dag_episode-144894-WO_NOS_20359301
-B) Elke Dag (Volkskrant): De kamer van Klok: Het is altijd tijd voor revolutie (met Abel van Gijlswijk op Lowlands) — https://omny.fm/shows/de-volkskrant-elke-dag/de-kamer-van-klok-het-is-altijd-tijd-voor-revolutie-met-abel-van-gijlswijk-op-lowlands
-C) Dagkoersen (FD): Iran-oorlog kent na zes maanden niet alleen verliezers — https://omny.fm/shows/fd-dagkoers/iran-oorlog-kent-na-zes-maanden-niet-alleen-verliezers
-D) NRC Vandaag: De nieuwe stikstofstrijd verscheurt de boeren onderling — https://prfx.byspotify.com/e/op3.dev/e/rss.art19.com/episodes/6e852e24-0c87-4452-acf9-429ca0e81187.mp3?rss_browser=BAhJIg9mZWVkcGFyc2VyBjoGRVQ%3D--6249cc52a45c5995843f2b1fcedbd2955c2d7057
+A) De Dag (NOS): Wie stopt massa-zaaddonor Simon? — https://podcast.npo.nl/file/de-dag/144897/wie-stopt-massa-zaaddonor-simon.mp3?awCollectionid=feed-123-de-dag&awEpisodeid=feed-123-de-dag_episode-144897-WO_NOS_20359331
+B) Dagkoersen (FD): Toegevoegde Waarde: Hebben we ons vergist in China? En worden we beter van een 25-urige werkweek? — https://omny.fm/shows/fd-toegevoegde-waarde/hebben-we-ons-vergist-in-china-en-worden-we-beter-van-een-25-urige-werkweek
+C) NRC Vandaag: Wat gaat er verloren als het nachtleven verdwijnt? — https://prfx.byspotify.com/e/op3.dev/e/rss.art19.com/episodes/6386584d-8230-4fb2-96cd-d6b6afca55f5.mp3?rss_browser=BAhJIg9mZWVkcGFyc2VyBjoGRVQ%3D--6249cc52a45c5995843f2b1fcedbd2955c2d7057
+
+Geen aflevering vandaag: Elke Dag (Volkskrant).
 ```
