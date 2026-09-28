@@ -1,0 +1,27 @@
+# Podcastdilemma — Middag, 28 september 2026
+
+## WhatsApp-poll
+
+```
+🎧 Podcastdilemma — Middag, 28 september 2026
+
+Plak dit als WhatsApp-poll.
+
+Vraag:
+Welke podcast zou jij vandaag luisteren?
+
+Opties:
+A) Jetten toont zich een leider bij de VN. Waarom lukt dat thuis niet?
+B) Techbedrijven lanceren AI-brillen - moeten we dat wel willen?
+C) ‘De euro moet de strijd aan met de dollar’
+D) De laatste (verboden) reportage van Mustafa Marghadi
+```
+
+## Oplossing
+
+```
+A) NRC Vandaag: Jetten toont zich een leider bij de VN. Waarom lukt dat thuis niet? — https://prfx.byspotify.com/e/op3.dev/e/rss.art19.com/episodes/c1ad2590-2976-4be8-b88e-1b73fdd20a9a.mp3?rss_browser=BAhJIg9mZWVkcGFyc2VyBjoGRVQ%3D--6249cc52a45c5995843f2b1fcedbd2955c2d7057
+B) Elke Dag (Volkskrant): Techbedrijven lanceren AI-brillen - moeten we dat wel willen? — https://omny.fm/shows/de-volkskrant-elke-dag/techbedrijven-lanceren-ai-brillen-moeten-we-dat-wel-willen
+C) Dagkoersen (FD): ‘De euro moet de strijd aan met de dollar’ — https://omny.fm/shows/fd-dagkoers/de-euro-moet-de-strijd-aan-met-de-dollar
+D) De Dag (NOS): De laatste (verboden) reportage van Mustafa Marghadi — https://podcast.npo.nl/file/de-dag/146031/de-laatste-verboden-reportage-van-mustafa-marghadi.mp3?awCollectionid=feed-123-de-dag&awEpisodeid=feed-123-de-dag_episode-146031-WO_NOS_20365268
+```
