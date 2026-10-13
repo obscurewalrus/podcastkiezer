@@ -11,17 +11,17 @@ Vraag:
 Welke podcast zou jij vandaag luisteren?
 
 Opties:
-A) Huizenkoper krijgt meer macht op woningmarkt, maar prijzen dalen nog niet. Hoe zit dat?
-B) Jonge Zuidasser durft klant minder snel te benaderen
-C) Hoe ver kan Poetin gaan voordat de NAVO terugslaat?
-D) Trump vs het Internationaal Strafhof
+A) Hoe werd de Canadese premier Carney aanvoerder van het verzet tegen Trump?
+B) Schrikt Poetin van Navo-verdedigingsplan?
+C) 500 verdachten, één straf: zo rekent El Salvador af met criminaliteit
+D) De 'peptalk' van de hoogste NAVO-militair
 ```
 
 ## Oplossing
 
 ```
-A) Elke Dag (Volkskrant): Huizenkoper krijgt meer macht op woningmarkt, maar prijzen dalen nog niet. Hoe zit dat? — https://omny.fm/shows/de-volkskrant-elke-dag/huizenkoper-krijgt-meer-macht-op-woningmarkt-maar-prijzen-dalen-nog-niet-hoe-zit-dat
-B) Dagkoersen (FD): Jonge Zuidasser durft klant minder snel te benaderen — https://omny.fm/shows/fd-dagkoers/jonge-zuidasser-durft-klant-minder-snel-te-benaderen
-C) NRC Vandaag: Hoe ver kan Poetin gaan voordat de NAVO terugslaat? — https://prfx.byspotify.com/e/op3.dev/e/rss.art19.com/episodes/85be2c4e-59b6-4892-8115-0cfa3faee717.mp3?rss_browser=BAhJIg9mZWVkcGFyc2VyBjoGRVQ%3D--6249cc52a45c5995843f2b1fcedbd2955c2d7057
-D) De Dag (NOS): Trump vs het Internationaal Strafhof — https://podcast.npo.nl/file/de-dag/146770/trump-vs-het-internationaal-strafhof.mp3?awCollectionid=feed-123-de-dag&awEpisodeid=feed-123-de-dag_episode-146770-WO_NOS_20367681
+A) Elke Dag (Volkskrant): Hoe werd de Canadese premier Carney aanvoerder van het verzet tegen Trump? — https://omny.fm/shows/de-volkskrant-elke-dag/hoe-werd-de-canadese-premier-carney-aanvoerder-van-het-verzet-tegen-trump
+B) Dagkoersen (FD): Schrikt Poetin van Navo-verdedigingsplan? — https://omny.fm/shows/fd-dagkoers/schrikt-poetin-van-navo-verdedigingsplan
+C) NRC Vandaag: 500 verdachten, één straf: zo rekent El Salvador af met criminaliteit — https://prfx.byspotify.com/e/op3.dev/e/rss.art19.com/episodes/ff80a279-afaa-4c09-bcaf-3522276210c5.mp3?rss_browser=BAhJIg9mZWVkcGFyc2VyBjoGRVQ%3D--6249cc52a45c5995843f2b1fcedbd2955c2d7057
+D) De Dag (NOS): De 'peptalk' van de hoogste NAVO-militair — https://podcast.npo.nl/file/de-dag/146830/de-peptalk-van-de-hoogste-navo-militair.mp3?awCollectionid=feed-123-de-dag&awEpisodeid=feed-123-de-dag_episode-146830-WO_NOS_20367825
 ```
