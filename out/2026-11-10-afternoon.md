@@ -11,17 +11,17 @@ Vraag:
 Welke podcast zou jij vandaag luisteren?
 
 Opties:
-A) Bij Bruna dreigt de laatste bladzijde
-B) Na rampzomer begint klimaattop in Turkije: valt opwarming aarde nog te beteugelen?
-C) Hoe Amerika met de doodstraf worstelt
-D) Waarom Eric uit Kameroen ging vechten voor Poetin
+A) Affaire van Nvidia-topman met 'Chinese spion' treft hele (AI-)wereld
+B) Werd Nvidia-topman Jensen Huang verleid door een Chinese spion?
+C) Als je je goedbetaalde baan verruilt voor...iets leukers
+D) De fatbike is de paria van het fietspad. Is dat terecht?
 ```
 
 ## Oplossing
 
 ```
-A) Dagkoersen (FD): Bij Bruna dreigt de laatste bladzijde — https://omny.fm/shows/fd-dagkoers/bij-bruna-dreigt-de-laatste-bladzijde
-B) Elke Dag (Volkskrant): Na rampzomer begint klimaattop in Turkije: valt opwarming aarde nog te beteugelen? — https://omny.fm/shows/de-volkskrant-elke-dag/na-rampzomer-begint-klimaattop-in-turkije-valt-opwarming-aarde-nog-te-beteugelen
-C) De Dag (NOS): Hoe Amerika met de doodstraf worstelt — https://podcast.npo.nl/file/de-dag/147909/hoe-amerika-met-de-doodstraf-worstelt.mp3?awCollectionid=feed-123-de-dag&awEpisodeid=feed-123-de-dag_episode-147909-WO_NOS_20372478
-D) NRC Vandaag: Waarom Eric uit Kameroen ging vechten voor Poetin — https://prfx.byspotify.com/e/op3.dev/e/rss.art19.com/episodes/969c4de0-8646-4aa4-ade7-117031ba815b.mp3?rss_browser=BAhJIg9mZWVkcGFyc2VyBjoGRVQ%3D--6249cc52a45c5995843f2b1fcedbd2955c2d7057
+A) Dagkoersen (FD): Affaire van Nvidia-topman met 'Chinese spion' treft hele (AI-)wereld — https://omny.fm/shows/fd-dagkoers/affaire-van-nvidia-topman-met-chinese-spion-treft-hele-ai-wereld
+B) Elke Dag (Volkskrant): Werd Nvidia-topman Jensen Huang verleid door een Chinese spion? — https://omny.fm/shows/de-volkskrant-elke-dag/werd-nvidia-topman-jensen-huang-verleid-door-een-chinese-spion
+C) De Dag (NOS): Als je je goedbetaalde baan verruilt voor...iets leukers — https://podcast.npo.nl/file/de-dag/146165/als-je-je-goedbetaalde-baan-verruilt-vooriets-leukers.mp3?awCollectionid=feed-123-de-dag&awEpisodeid=feed-123-de-dag_episode-146165-WO_NOS_20365656
+D) NRC Vandaag: De fatbike is de paria van het fietspad. Is dat terecht? — https://prfx.byspotify.com/e/op3.dev/e/rss.art19.com/episodes/3087b31d-179a-4258-afa0-af136f137f37.mp3?rss_browser=BAhJIg9mZWVkcGFyc2VyBjoGRVQ%3D--6249cc52a45c5995843f2b1fcedbd2955c2d7057
 ```
