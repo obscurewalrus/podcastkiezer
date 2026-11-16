@@ -1,0 +1,27 @@
+# Podcastdilemma — Middag, 17 november 2026
+
+## WhatsApp-poll
+
+```
+🎧 Podcastdilemma — Middag, 17 november 2026
+
+Plak dit als WhatsApp-poll.
+
+Vraag:
+Welke podcast zou jij vandaag luisteren?
+
+Opties:
+A) Alles wordt duurder, maar Nederlandse economie loopt als een tierelier - hoe kan dat?
+B) Docu-hit ‘You Can See Everything’: het spiegelpaleis van Elizabeth Holmes
+C) GTA VI: niet alleen een paar ‘geeks’ vragen vrij
+D) Opgelicht door een nepagent
+```
+
+## Oplossing
+
+```
+A) Elke Dag (Volkskrant): Alles wordt duurder, maar Nederlandse economie loopt als een tierelier - hoe kan dat? — https://omny.fm/shows/de-volkskrant-elke-dag/alles-wordt-duurder-maar-nederlandse-economie-loopt-als-een-tierelier-hoe-kan-dat
+B) NRC Vandaag: Docu-hit ‘You Can See Everything’: het spiegelpaleis van Elizabeth Holmes — https://prfx.byspotify.com/e/op3.dev/e/rss.art19.com/episodes/275b3e77-26f3-4d7e-90fd-ca14768a483d.mp3?rss_browser=BAhJIg9mZWVkcGFyc2VyBjoGRVQ%3D--6249cc52a45c5995843f2b1fcedbd2955c2d7057
+C) Dagkoersen (FD): GTA VI: niet alleen een paar ‘geeks’ vragen vrij — https://omny.fm/shows/fd-dagkoers/gta-vi-niet-alleen-een-paar-geeks-vragen-vrij
+D) De Dag (NOS): Opgelicht door een nepagent — https://podcast.npo.nl/file/de-dag/148239/opgelicht-door-een-nepagent.mp3?awCollectionid=feed-123-de-dag&awEpisodeid=feed-123-de-dag_episode-148239-WO_NOS_20373865
+```
