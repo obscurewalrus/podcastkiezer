@@ -11,17 +11,17 @@ Vraag:
 Welke podcast zou jij vandaag luisteren?
 
 Opties:
-A) Luidt GTA VI het einde van een gametijdperk in?
-B) De oneindige reis van Voyager 1
-C) Uitgeprocedeerde asielzoekers naar Rwanda sturen, (hoe) werkt dat?
-D) De kamer van Klok: Grootmoedigheid, Yesilgöz heeft het niet in zich
+A) Wat zegt de beursgang van Anthropic over het vertrouwen in AI?
+B) Poging twee voor het minderheidsexperiment
+C) Deutsche Bank in opspraak na lek klokkenluiders
+D) Anthropic naar de beurs: blijkt de AI-boom een bubbel?
 ```
 
 ## Oplossing
 
 ```
-A) NRC Vandaag: Luidt GTA VI het einde van een gametijdperk in? — https://prfx.byspotify.com/e/op3.dev/e/rss.art19.com/episodes/f5f32eee-5fe2-4f0d-b112-dca44cbaf8bb.mp3?rss_browser=BAhJIg9mZWVkcGFyc2VyBjoGRVQ%3D--6249cc52a45c5995843f2b1fcedbd2955c2d7057
-B) De Dag (NOS): De oneindige reis van Voyager 1 — https://podcast.npo.nl/file/de-dag/148286/de-oneindige-reis-van-voyager-1.mp3?awCollectionid=feed-123-de-dag&awEpisodeid=feed-123-de-dag_episode-148286-WO_NOS_20374127
-C) Dagkoersen (FD): Uitgeprocedeerde asielzoekers naar Rwanda sturen, (hoe) werkt dat? — https://omny.fm/shows/fd-dagkoers/uitgeprocedeerde-asielzoekers-naar-rwanda-sturen-hoe-werkt-dat-1
-D) Elke Dag (Volkskrant): De kamer van Klok: Grootmoedigheid, Yesilgöz heeft het niet in zich — https://omny.fm/shows/de-volkskrant-elke-dag/de-kamer-van-klok-grootmoedigheid-yesilg-z-heeft-het-niet-in-zich
+A) NRC Vandaag: Wat zegt de beursgang van Anthropic over het vertrouwen in AI? — https://prfx.byspotify.com/e/op3.dev/e/rss.art19.com/episodes/026fca24-5927-45b2-a3cc-447cf5671aa9.mp3?rss_browser=BAhJIg9mZWVkcGFyc2VyBjoGRVQ%3D--6249cc52a45c5995843f2b1fcedbd2955c2d7057
+B) De Dag (NOS): Poging twee voor het minderheidsexperiment — https://podcast.npo.nl/file/de-dag/148315/poging-twee-voor-het-minderheidsexperiment.mp3?awCollectionid=feed-123-de-dag&awEpisodeid=feed-123-de-dag_episode-148315-WO_NOS_20374281
+C) Dagkoersen (FD): Deutsche Bank in opspraak na lek klokkenluiders — https://omny.fm/shows/fd-dagkoers/deutsche-bank-in-opspraak-na-lek-klokkenluiders
+D) Elke Dag (Volkskrant): Anthropic naar de beurs: blijkt de AI-boom een bubbel? — https://omny.fm/shows/de-volkskrant-elke-dag/anthropic-naar-de-beurs-blijkt-de-ai-boom-een-ai-bubbel
 ```
